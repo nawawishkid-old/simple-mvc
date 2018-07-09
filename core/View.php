@@ -10,6 +10,13 @@ class View
 
     public function __construct(array $configs)
     {
+        if (! is_null($configs)) {
+            $this->config($configs);
+        }
+    }
+
+    public function config(array $configs)
+    {
         $this->directory = $configs['directory'];
         $this->fileExtension = $configs['file_extension'];
     }

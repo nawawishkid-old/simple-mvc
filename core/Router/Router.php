@@ -23,10 +23,6 @@ class Router
         'callback' => null
     ];
 
-    private $routeParameters = [];
-
-    private $routeArguments = [];
-
     private $validMethod = [
         'GET',
         'POST',
@@ -127,8 +123,8 @@ class Router
         // var_dump($route);
         // var_dump($callback);
 
-        if (empty($this->$registeredRoute[$method])) {
-            $this->$registeredRoute[$method] = [];
+        if (empty($this->registeredRoute[$method])) {
+            $this->registeredRoute[$method] = [];
         }
 
         $routeInfo = [
@@ -147,7 +143,7 @@ class Router
     {
         if (is_null($callback)) {
             $callback = $this->matchedRoute['callback'];
-            $extraArguments = $this->matchedRoute['arguments'];
+            $extraArguments = (object) $this->matchedRoute['arguments'];
         } else {
             $extraArguments = null;
         }

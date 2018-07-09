@@ -4,30 +4,28 @@ namespace Core;
 
 class Config
 {
-    private $configDirectory;
+    private static $configDirectory;
 
-    private $configs = [];
+    private static $configs = [];
 
-    public function __construct()
+    public static function init()
     {
-        $this->configDirectory = APP_ROOT . '/configs';
+        self::$configDirectory = APP_ROOT . '/configs';
     }
 
-    public function dir(string $path)
+    public static function dir(string $path)
     {
         if (! \file_exists($path) || ! \is_dir($path)) {
             throw new \Exception("Give directory path does not exists or not a directory: $path", 1);
             
         }
 
-        $this->configDirectory = $path;
-
-        return $this;
+        self::$configDirectory = $path;
     }
 
-    public function get(string $configName, $fallback = null)
+    public static function get(string $configName, $fallback = null)
     {
-        $parsedConfig = $this->parseConfig($configName);
+        $parsedConfig = self::parseConfig($configName);
 
         $config = empty($parsedConfig)
                     ? $fallback
@@ -36,9 +34,9 @@ class Config
         return $config;
     }
 
-    public function loadModule(string $configModule)
+    public static function loadModule(string $configModule)
     {
-        $moduleFile = $this->configDirectory . '/' . $configModule . '.php';
+        $moduleFile = self::$configDirectory . '/' . $configModule . '.php';
 
         if (! file_exists($moduleFile)) {
             throw new \Exception("Config module does not exists: $configModule", 1);
@@ -49,14 +47,10 @@ class Config
             $configModule => include $moduleFile
         ];
 
-        $this->updateConfigs($configs);
-
-        // var_dump($this->configs);
-
-        return $this;
+        self::updateConfigs($configs);
     }
 
-    public function loadFile(string $filePath)
+    public static function loadFile(string $filePath)
     {
         if (! file_exists($filePath)) {
             throw new \Exception("Given config file path does not exists: $filePath", 1);
@@ -76,19 +70,22 @@ class Config
                 break;
         }
 
-        $this->configs = \array_merge($this->configs, $configs);
+        self::$configs = \array_merge(self::$configs, $configs);
     }
 
-    private function updateConfigs(array $configs)
+    public static function isLoaded(string $moduleName)
     {
-        $this->configs = \array_merge($this->configs, $configs);
-
-        return $this;
+        return \in_array($moduleName, self::$configs);
     }
 
-    private function parseConfig(string $configName)
+    private static function updateConfigs(array $configs)
     {
-        $config = $this->configs;
+        self::$configs = \array_merge(self::$configs, $configs);
+    }
+
+    private static function parseConfig(string $configName)
+    {
+        $config = self::$configs;
 
         foreach (explode('.', $configName) as $name) {
             if (empty($config[$name])) {
