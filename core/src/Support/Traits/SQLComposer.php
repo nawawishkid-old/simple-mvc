@@ -1,6 +1,6 @@
 <?php
 
-namespace Core\Traits;
+namespace Core\Support\Traits;
 
 trait SQLComposer
 {
@@ -23,7 +23,7 @@ trait SQLComposer
 
     private $input = [];
 
-    protected function compose()
+    public function compose()
     {
         return \implode('', $this->baseKeywords[$this->selectedBaseKeyword]);
     }
@@ -56,6 +56,32 @@ trait SQLComposer
         return $this;
     }
 
+    // ควรให้ $values เป็น callable ได้ด้วย?
+    public function insert(string $table, array $columns = [], array $values)
+    {
+        // $this->callIfCallable($values)
+        $this->input = $values;
+
+        if ($this->isFirstKeyword) {
+            $columnString = \implode(', ', $columns);
+            $insert = "INSERT INTO $table ($columnString) VALUES";
+        } else {
+            $insert = ',';
+        }
+
+        $preparedValues = $this->formatInsertValues($columns, $values);
+
+        // var_dump($preparedValues);
+        
+        $stmt = "$insert ($preparedValues)";
+
+        var_dump($stmt);
+
+        $this->addKeyword('insert_into', $stmt);
+
+        return $this;
+    }
+
     public function where(string $column, string $operator, $value)
     {
         $where = ($this->prevKeyword === 'where') ? 'AND' : 'WHERE';
@@ -79,9 +105,52 @@ trait SQLComposer
         return $this;
     }
 
+    private function formatInsertValues(array $columns, array $values)
+    {
+        $preparedValuesArray = \array_replace($values, \array_fill(0, count($values), '?'));
+
+        $columnsLength = count($columns);
+        $valuesLength = count($values);
+
+        if ($valuesLength > $columnsLength) {
+            $preparedValues = '';
+
+            foreach ($preparedValuesArray as $key => $value) {
+                $rowIsEnd = (($key + 1) % $columnsLength) === 0;
+                $isLastRow = ($key + 1) === $valuesLength;
+
+                if (
+                    $key > 0 
+                    && $key < $valuesLength 
+                    && $rowIsEnd
+                ) {
+                    $suffix = $isLastRow ? '' : '), (';
+                    $preparedValues .= $preparedValuesArray[$key] . $suffix;
+                    
+                    continue;
+                }
+
+                $preparedValues .= $preparedValuesArray[$key] . ', ';
+            }
+        } else {
+            $preparedValues = implode(', ', $preparedValuesArray);
+        }
+
+        return $preparedValues;
+    }
+
     private function isBaseKeyword(string $keyword)
     {
         return empty($this->baseKeywords[$keyword]);
+    }
+
+    private function callIfCallable($mayCallable, $arguments)
+    {
+        if (is_callable($mayCallable)) {
+            return \call_user_func_array($mayCallable, (array) $arguments);
+        }
+
+        return $mayCallable;
     }
 
     // protected $queryStructure = [

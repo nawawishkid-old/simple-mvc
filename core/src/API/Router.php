@@ -1,10 +1,10 @@
 <?php
 
-namespace Core;
+namespace Core\API;
 
-use Core\Request;
-use Core\Response;
-use Core\View;
+use Core\Input\Request;
+use Core\Output\Response;
+use Core\Output\View;
 
 class Router
 {

@@ -1,5 +1,6 @@
 <?php
 
+// May use static method instead
 
 $router->get('/', function ($request, $response) {
     $response->data('<h1>Hi!</h1>');

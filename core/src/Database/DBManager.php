@@ -1,8 +1,8 @@
 <?php
 
-namespace Core;
+namespace Core\Database;
 
-use Core\Traits\SQLComposer;
+use Core\Support\Traits\SQLComposer;
 use Core\Config;
 use \PDO;
 
@@ -44,16 +44,39 @@ class DBManager
         }
     }
 
-    public function get()
+    public function execute()
+    {
+        $this->connectionReady();
+
+        $statement = $this->compose();
+        // var_dump($statement);
+        // echo "===== Input =====" . PHP_EOL;
+        // var_dump($this->input);
+        $stmt = self::$conn->prepare($statement);
+        $stmt->execute($this->input);
+
+        return $stmt;
+    }
+
+    public function fetch()
+    {
+        $this->connectionReady();
+
+        $stmt = $this->execute();
+
+        $results = [];
+
+        while ($row = $stmt->fetch()) {
+            $results[] = $row;
+        }
+
+        return $results;
+    }
+
+    private function connectionReady()
     {
         if (! isset(self::$conn)) {
             self::connect();
         }
-
-        // echo $this->compose();
-        $statement = self::$conn->prepare($this->compose());
-        $statement->execute($this->input);
-
-        return $statement->fetch();
     }
 }
