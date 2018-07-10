@@ -4,63 +4,77 @@ namespace Core\Support\Traits;
 
 trait SQLComposer
 {
-    protected $baseKeywords = [
-        'select',
-        'insert_into',
-        'update',
-        'delete_from'
+    public $baseKeywords = [
+        'select' => [],
+        'insert_into' => [],
+        'update' => [],
+        'delete_from' => []
     ];
 
-    protected $subKeywords = [
+    public $subKeywords = [
         'where',
         'having',
         'on'
+    ];
+
+    private $validOperator = [
+        '=',
+        '<>',
+        '<',
+        '>',
+        '<=',
+        '>=',
+        'between',
+        'like',
+        'in'
     ];
 
     private $selectedBaseKeyword;
 
     private $isFirstKeyword = true;
 
-    private $input = [];
+    protected $inputs = [
+        'insert_into' => [],
+        'update' => [],
+        'delete_from' => []
+    ];
 
-    public function compose()
+    /**
+     * Compose SQL statement
+     * 
+     * @api
+     */
+    public function compose(string $baseKeywords = null)
     {
-        return \implode('', $this->baseKeywords[$this->selectedBaseKeyword]);
+        $select = \is_null($baseKeywords) ? $this->selectedBaseKeyword : $baseKeywords;
+
+        return \implode('', $this->baseKeywords[$select]);
     }
 
-    private function addKeyword(string $keyword, $value)
-    {
-        if ($this->isFirstKeyword) {
-            $this->isFirstKeyword = false;
-            if (! $this->isBaseKeyword($keyword)) {
-                throw new \Exception("Error: Base keyword required i.e. " . implode(', ', $this->baseKeywords), 1);
-                
-            }
-
-            $this->selectedBaseKeyword = $keyword;
-            $this->baseKeywords[$keyword][] = $value;
-        } else {
-            $this->baseKeywords[$this->selectedBaseKeyword][] = $value;
-        }
-
-        $this->prevKeyword = $keyword;
-    }
-
+    /**
+     * Add SQL 'SELECT column_1, column_n FROM table' statement.
+     * 
+     * @api
+     */
     public function select(array $columns, string $table)
     {
         $columnString = implode(', ', $columns);
-        $value = "SELECT $columnString FROM $table" . PHP_EOL;
+        $stmt = "SELECT $columnString FROM $table" . PHP_EOL;
 
-        $this->addKeyword('select', $value);
+        $this->addKeyword('select', $stmt);
 
         return $this;
     }
 
-    // ควรให้ $values เป็น callable ได้ด้วย?
+    /**
+     * Add SQL 'INSERT INTO' statement.
+     * 
+     * @api
+     */
     public function insert(string $table, array $columns = [], array $values)
     {
-        // $this->callIfCallable($values)
-        $this->input = $values;
+        $this->addInputs('insert_into', $values);
+        // $this->inputs['insert_into'] = $values;
 
         if ($this->isFirstKeyword) {
             $columnString = \implode(', ', $columns);
@@ -82,8 +96,37 @@ trait SQLComposer
         return $this;
     }
 
+    /**
+     * Add SQL 'UPDATE' statement.
+     * 
+     * @api
+     */
+    public function update(string $table, array $setClauseValues)
+    {
+        $this->addInputs('update', $setClauseValues);
+        // foreach ($setClauseValues as $key => $value) {
+        //     $this->inputs['update'][] = $this->validateValue($value);
+        // }
+
+        $setClause = $this->composeUpdateSetClause($setClauseValues);
+        $stmt = "UPDATE $table SET $setClause";
+
+        $this->addKeyword('update', $stmt, true);
+
+        return $this;
+    }
+
+    /**
+     * Add SQL 'WHERE' clause into statement.
+     * 
+     * @api
+     */
+    // Add where clause to baseKeyword
     public function where(string $column, string $operator, $value)
     {
+        $this->addInputs($this->selectedBaseKeyword, $value);
+        // $this->inputs[$this->selectedBaseKeyword][] = $this->validateValue($value);
+
         $where = ($this->prevKeyword === 'where') ? 'AND' : 'WHERE';
         $statement = $this->composeOperatorStatement($column, $operator, $value);
         $statement = "{$where} {$statement}" . PHP_EOL;
@@ -93,9 +136,15 @@ trait SQLComposer
         return $this;
     }
 
+    /**
+     * Add SQL 'OR' keyword into previously added clause.
+     * 
+     * @api
+     */
     public function orWhere(string $column, string $operator, $value)
     {
         $this->prevKeywordIsMatched(['where']);
+        $this->addInputs($this->selectedBaseKeyword, $value);
 
         $statement = $this->composeOperatorStatement($column, $operator, $value);
         $statement = "OR $statement" . PHP_EOL;
@@ -103,6 +152,64 @@ trait SQLComposer
         $this->addKeyword('or_where', $statement);
 
         return $this;
+    }
+
+    protected function addInputs(string $baseKeyword, $inputs)
+    {
+        if (! \is_array($inputs)) {
+            $this->inputs[$baseKeyword][] = $this->validateValue($inputs);
+        }
+
+        array_walk_recursive($inputs, function ($value, $key) use ($baseKeyword) {
+            // echo $value . '<br>';
+            $this->inputs[$baseKeyword][] = $this->validateValue($value);
+        });
+    }
+
+    /**
+     * Add any SQL keyword for later composition.
+     */
+    protected function addKeyword(string $keyword, $value, bool $forceFirstKeyword = false)
+    {
+        if ($forceFirstKeyword) {
+            $this->isFirstKeyword = true;
+        }
+
+        if ($this->isFirstKeyword) {
+            $this->isFirstKeyword = false;
+            if (! $this->isBaseKeyword($keyword)) {
+                throw new \Exception("Error: Base keyword required i.e. " . implode(', ', $this->baseKeywords), 1);
+                
+            }
+
+            $this->selectedBaseKeyword = $keyword;
+            $this->baseKeywords[$keyword][] = $value;
+        } else {
+            $this->baseKeywords[$this->selectedBaseKeyword][] = $value;
+        }
+
+        $this->prevKeyword = $keyword;
+    }
+
+    protected function resetStatement()
+    {
+        $this->resetInputArray();
+        // $this->resetBaseKeywordArray();
+    }
+
+    /**
+     * Compose SQL 'SET' clause for 'UPDATE' statement.
+     * 
+     * @param array $setClauseValues Associative array where the key is a column name and the value is value to update
+     */
+    private function composeUpdateSetClause(array $setClauseValues)
+    {
+        \array_walk($setClauseValues, function (&$value, $key) {
+            // $value = $this->validateValue($value);
+            $value = "$key = ?" . PHP_EOL;
+        });
+
+        return implode(', ', $setClauseValues);
     }
 
     private function resetInputArray()
@@ -114,7 +221,7 @@ trait SQLComposer
     {
         $this->baseKeywords = \array_map(function ($item) {
             return [];
-        }, $this->baseKeyword);
+        }, $this->baseKeywords);
     }
 
     private function formatInsertValues(array $columns, array $values)
@@ -151,6 +258,15 @@ trait SQLComposer
         return $preparedValues;
     }
 
+    private function validateValue($value)
+    {
+        $value = \trim($value);
+        // $value = 
+        $value = \is_string($value) ? "\"$value\"" : $value;
+
+        return $value;
+    }
+
     private function isBaseKeyword(string $keyword)
     {
         return empty($this->baseKeywords[$keyword]);
@@ -181,18 +297,6 @@ trait SQLComposer
     //     'join' => [],
     //     'on' => ''
     // ];
-
-    private $validOperator = [
-        '=',
-        '<>',
-        '<',
-        '>',
-        '<=',
-        '>=',
-        'between',
-        'like',
-        'in'
-    ];
 
     // private $prevKeyword;
 

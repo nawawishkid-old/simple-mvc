@@ -75,13 +75,13 @@ class Model
             }
         }
 
-        // var_dump($values);
+        var_dump($values);
 
         $this->db->insert($this->table, $columns, $values);
-        $result = $this->db->execute();
+        $result = $this->db->execute('insert_into');
 
         if (! $result) {
-            throw new Exception("Error: Could not insert data", 1);
+            throw new \Exception("Error: Could not insert data", 1);
             
         }
         // var_dump($this->db->compose());
@@ -98,13 +98,38 @@ class Model
         return $this;
     }
 
-    public function update()
+    public function update(array $updatedValues = null)
     {
-        $columns = \array_keys($this->selectedRecord);
-        $values = \array_values($this->selectedRecord);
+        if (! \is_null($updatedValues)) {
+            $values = $updatedValues;
+        }
+
+        // $columns = \array_keys($this->selectedRecord);
+        // $values = \array_values($this->selectedRecord);
 
         // ควรให้ $values เป็น callable ได้ด้วย?
-        $this->db->insert($this->table, $columns, $values);
+        $this->db->update($this->table, $values);
+
+        return $this->db;
+    }
+
+    public function save()
+    {
+        echo '<pre>';
+        var_dump($this->db->baseKeywords);
+        echo '</pre>';
+
+        if (empty($this->db->baseKeywords['update'])) {
+            throw new \Exception("Error: Could not update record. You have to call update() method before call save() method", 1);
+            
+        }
+        
+        $result = $this->db->execute('update');
+
+        if (! $result) {
+            throw new \Exception("Error: Could not update data", 1);
+            
+        }
     }
 
     /**

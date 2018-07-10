@@ -3,6 +3,7 @@
 namespace Core\Database;
 
 use Core\Support\Traits\SQLComposer;
+use Core\Support\Debugger;
 use Core\Config;
 use \PDO;
 
@@ -44,19 +45,20 @@ class DBManager
         }
     }
 
-    public function execute()
+    public function execute(string $baseKeyword = null)
     {
         $this->connectionReady();
 
-        $statement = $this->compose();
-        // var_dump($statement);
-        // echo "===== Input =====" . PHP_EOL;
-        var_dump($this->input);
+        $keyword = \is_null($baseKeyword) ? $this->selectedBaseKeyword : $baseKeyword;
+        $statement = $this->compose($keyword);
+
+        (new Debugger())->varDump($this->inputs);
+
         $stmt = self::$conn->prepare($statement);
-        $stmt->execute($this->input);
-        $this->resetBaseKeywordArray();
-        $this->resetInputArray();
-        var_dump($this->input);
+        $stmt->execute($this->inputs[$keyword]);
+
+        $this->resetStatement();
+        // var_dump($this->inputs[$keyword]);
 
         return $stmt;
     }
@@ -65,7 +67,7 @@ class DBManager
     {
         $this->connectionReady();
 
-        $stmt = $this->execute();
+        $stmt = $this->execute('select');
 
         $results = [];
 
