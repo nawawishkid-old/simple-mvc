@@ -8,7 +8,7 @@ use Core\Support\Collection;
 
 class Model
 {
-    public $db;
+    private $db;
 
     private $table;
 
@@ -40,6 +40,9 @@ class Model
         return $this->selectedRecord;
     }
 
+    /**
+     * Select records from database
+     */
     public function select(array $columns)
     {
         $this->db->select($columns, $this->table);
@@ -47,6 +50,9 @@ class Model
         return $this->db;
     }
 
+    /**
+     * Insert new record into database
+     */
     public function create(array $records = null)
     {
         if (! is_null($records)) {
@@ -69,7 +75,7 @@ class Model
             }
         }
 
-        var_dump($values);
+        // var_dump($values);
 
         $this->db->insert($this->table, $columns, $values);
         $result = $this->db->execute();
@@ -82,6 +88,9 @@ class Model
         // exit;
     }
 
+    /**
+     * Add single record to Model object, not to database.
+     */
     public function add(array $record)
     {
         $this->newRecord->push($record);
@@ -98,11 +107,17 @@ class Model
         $this->db->insert($this->table, $columns, $values);
     }
 
+    /**
+     * Get all records from database
+     */
     public function all()
     {
         return $this->get()->all();
     }
 
+    /**
+     * Format selected records to JSON
+     */
     public function toJson()
     {
         return $this->get()->toJson();

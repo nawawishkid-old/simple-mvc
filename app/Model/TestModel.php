@@ -11,17 +11,24 @@ $model = new Model('wp_postmeta');
 //             ->where('ID', '>', 3);
 // $model->find('meta_id', '>', 0)
 //         ->where('meta_id', '<', 30);
-$model->create([
-    [
-        'post_id' => 20,
-        'meta_key' => 'nameeeee',
-        'meta_value' => 'Nawawish!!!'
-    ],
-    [
-        'post_id' => 40,
-        'meta_key' => 'surnameeeee',
-        'meta_value' => 'Samerpark!!!'
-    ]
+$model->add([
+    'post_id' => 20,
+    'meta_key' => 'สวัสดีครับ',
+    'meta_value' => 'อาโล้ห่าาาา!!!'
 ]);
-// $model->select(['meta_id']);
-// var_dump($model->toJson());
+$model->create();
+
+// $model->create([
+//     [
+//         'post_id' => 20,
+//         'meta_key' => 'nameeeee',
+//         'meta_value' => 'Nawawish!!!'
+//     ],
+//     [
+//         'post_id' => 40,
+//         'meta_key' => 'surnameeeee',
+//         'meta_value' => 'Samerpark!!!'
+//     ]
+// ]);
+$model->select(['meta_id']);
+var_dump($model->toJson());

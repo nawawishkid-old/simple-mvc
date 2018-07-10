@@ -51,9 +51,12 @@ class DBManager
         $statement = $this->compose();
         // var_dump($statement);
         // echo "===== Input =====" . PHP_EOL;
-        // var_dump($this->input);
+        var_dump($this->input);
         $stmt = self::$conn->prepare($statement);
         $stmt->execute($this->input);
+        $this->resetBaseKeywordArray();
+        $this->resetInputArray();
+        var_dump($this->input);
 
         return $stmt;
     }

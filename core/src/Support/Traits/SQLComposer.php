@@ -75,7 +75,7 @@ trait SQLComposer
         
         $stmt = "$insert ($preparedValues)";
 
-        var_dump($stmt);
+        // var_dump($stmt);
 
         $this->addKeyword('insert_into', $stmt);
 
@@ -103,6 +103,18 @@ trait SQLComposer
         $this->addKeyword('or_where', $statement);
 
         return $this;
+    }
+
+    private function resetInputArray()
+    {
+        $this->input = [];
+    }
+
+    private function resetBaseKeywordArray()
+    {
+        $this->baseKeywords = \array_map(function ($item) {
+            return [];
+        }, $this->baseKeyword);
     }
 
     private function formatInsertValues(array $columns, array $values)
