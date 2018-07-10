@@ -2,6 +2,8 @@
 
 namespace Core\Support\Traits;
 
+use Core\Support\Debugger;
+
 trait SQLComposer
 {
     public $baseKeywords = [
@@ -48,6 +50,8 @@ trait SQLComposer
     {
         $select = \is_null($baseKeywords) ? $this->selectedBaseKeyword : $baseKeywords;
 
+        (new Debugger())->varDump($this->baseKeywords, "SQLCompose::compose() \$this->baseKeywords");
+
         return \implode('', $this->baseKeywords[$select]);
     }
 
@@ -76,22 +80,23 @@ trait SQLComposer
         $this->addInputs('insert_into', $values);
         // $this->inputs['insert_into'] = $values;
 
-        if ($this->isFirstKeyword) {
-            $columnString = \implode(', ', $columns);
-            $insert = "INSERT INTO $table ($columnString) VALUES";
-        } else {
-            $insert = ',';
-        }
+        // if ($this->isFirstKeyword) {
+        //     $columnString = \implode(', ', $columns);
+        //     $insert = "INSERT INTO $table ($columnString) VALUES";
+        // } else {
+        //     $insert = ',';
+        // }
 
+        $columnString = \implode(', ', $columns);
         $preparedValues = $this->formatInsertValues($columns, $values);
 
         // var_dump($preparedValues);
         
-        $stmt = "$insert ($preparedValues)";
+        $stmt = "INSERT INTO $table ($columnString) VALUES ($preparedValues)";
 
-        // var_dump($stmt);
+        // (new Debugger())->varDump($stmt, "SQLCompose::insert() statement");
 
-        $this->addKeyword('insert_into', $stmt);
+        $this->addKeyword('insert_into', $stmt, true);
 
         return $this;
     }
@@ -104,14 +109,20 @@ trait SQLComposer
     public function update(string $table, array $setClauseValues)
     {
         $this->addInputs('update', $setClauseValues);
-        // foreach ($setClauseValues as $key => $value) {
-        //     $this->inputs['update'][] = $this->validateValue($value);
-        // }
 
         $setClause = $this->composeUpdateSetClause($setClauseValues);
         $stmt = "UPDATE $table SET $setClause";
 
         $this->addKeyword('update', $stmt, true);
+
+        return $this;
+    }
+
+    public function deleteFrom(string $table)
+    {
+        $stmt = "DELETE FROM $table" . PHP_EOL;
+        
+        $this->addKeyword('delete_from', $stmt, true);
 
         return $this;
     }
@@ -158,6 +169,8 @@ trait SQLComposer
     {
         if (! \is_array($inputs)) {
             $this->inputs[$baseKeyword][] = $this->validateValue($inputs);
+            
+            return;
         }
 
         array_walk_recursive($inputs, function ($value, $key) use ($baseKeyword) {
@@ -260,9 +273,7 @@ trait SQLComposer
 
     private function validateValue($value)
     {
-        $value = \trim($value);
-        // $value = 
-        $value = \is_string($value) ? "\"$value\"" : $value;
+        $value = \is_string($value) ? '"' . \trim($value) . '"' : $value;
 
         return $value;
     }

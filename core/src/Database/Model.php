@@ -3,8 +3,9 @@
 namespace Core\Database;
 
 use Core\Database\DBManager as DB;
-use Core\Support\Traits\SQLComposer;
 use Core\Support\Collection;
+use Core\Support\Debugger;
+use Core\Support\Traits\SQLComposer;
 
 class Model
 {
@@ -75,7 +76,8 @@ class Model
             }
         }
 
-        var_dump($values);
+        // (new Debugger())->varDump($columns, "Insert columns");
+        // (new Debugger())->varDump($values, "Insert values");
 
         $this->db->insert($this->table, $columns, $values);
         $result = $this->db->execute('insert_into');
@@ -104,9 +106,6 @@ class Model
             $values = $updatedValues;
         }
 
-        // $columns = \array_keys($this->selectedRecord);
-        // $values = \array_values($this->selectedRecord);
-
         // ควรให้ $values เป็น callable ได้ด้วย?
         $this->db->update($this->table, $values);
 
@@ -115,9 +114,7 @@ class Model
 
     public function save()
     {
-        echo '<pre>';
-        var_dump($this->db->baseKeywords);
-        echo '</pre>';
+        // (new Debugger())->varDump($this->db->baseKeywords, 'Base keywords');
 
         if (empty($this->db->baseKeywords['update'])) {
             throw new \Exception("Error: Could not update record. You have to call update() method before call save() method", 1);
@@ -128,6 +125,24 @@ class Model
 
         if (! $result) {
             throw new \Exception("Error: Could not update data", 1);
+            
+        }
+    }
+
+    public function delete()
+    {
+        $this->db->deleteFrom($this->table);
+        (new Debugger())->varDump($this->db->compose('delete_from'));
+
+        return $this->db;
+    }
+
+    public function confirmDelete()
+    {
+        $result = $this->db->execute('delete_from');
+
+        if (! $result) {
+            throw new \Exception("Error: Could not delete data", 1);
             
         }
     }

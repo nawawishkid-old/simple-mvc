@@ -1,14 +1,15 @@
 <?php
 
 use Core\Database\Model;
+use Core\Support\Debugger;
 
 $model = new Model('wp_postmeta');
 $model->add([
-    'post_id' => 20,
+    'post_id' => 21,
     'meta_key' => 'สวัสดีครับ',
     'meta_value' => 'อาโล้ห่าาาา!!!     '
 ]);
-// $model->create();
+$model->create();
 
 // $model->create([
 //     [
@@ -27,7 +28,10 @@ $model->select(['meta_id']);
 
 $model->update([
     'meta_value' => 'ฮายยยยยย     '
-])->where('meta_value', '=', 'อาโล้ห่าาาา!!!');
+])->where('post_id', '=', 21);
 $model->save();
 
-$model->create();
+// $model->create();
+$model->delete()
+        ->where('post_id', '=', 21);
+$model->confirmDelete();

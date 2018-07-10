@@ -52,7 +52,9 @@ class DBManager
         $keyword = \is_null($baseKeyword) ? $this->selectedBaseKeyword : $baseKeyword;
         $statement = $this->compose($keyword);
 
-        (new Debugger())->varDump($this->inputs);
+        // (new Debugger())->varDump($keyword, "DBManager::execute() keyword");
+        (new Debugger())->varDump($statement, "DBManager::execute() statement");
+        (new Debugger())->varDump($this->inputs, "DBManager::execute() \$this->inputs");
 
         $stmt = self::$conn->prepare($statement);
         $stmt->execute($this->inputs[$keyword]);

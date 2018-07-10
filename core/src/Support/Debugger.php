@@ -7,20 +7,49 @@ class Debugger
     protected $preferences = [
         'varDump' => [
             'style' => [
-                'backgroundColor' => '#ccc',
-                'padding' => '10px'
+                'pre' => [
+                    'backgroundColor' => '#ccc',
+                    'padding' => '10px'
+                ]
             ]
         ]
     ];
 
-    public function varDump($value)
+    public function varDump($value, string $title = null)
     {
-        $css = $this->preferences['varDump']['style'];
-        $bg = $css['backgroundColor'];
-        $padding = $css['padding'];
+        $args = [];
+        $args['title'] = $title;
 
-        echo "<pre style=\"background-color: $bg; padding: $padding;\">";
+        $this->varDumpTemplate($value, $args);
+
+        return $this;
+    }
+
+    private function varDumpTemplate($value, array $args = null)
+    {
+        if (! \is_null($args)) {
+            $style = empty($args['style']) ? $this->preferences['varDump']['style'] : $args['style'];
+        } else {
+            $style = $this->preferences['varDump']['style'];
+        }
+
+        $title = isset($args['title']) 
+                    ? "<h3>{$args['title']}</h3>"
+                    : '';
+        $preStyle = $style['pre'];
+        
+        \ob_start();
         \var_dump($value);
-        echo '</pre>';
+        $result = \ob_get_clean();
+
+        echo <<<HTML
+<div style="">
+    <h3>$title</h3>
+    <pre style="background-color: {$preStyle['backgroundColor']}; padding: {$preStyle['padding']};">
+        $result
+    </pre>
+    <hr>
+</div>
+HTML;
     }
 }
