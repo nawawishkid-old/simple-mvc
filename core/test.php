@@ -1,9 +1,24 @@
 <?php
 
-$x = ['a' => 'abc', 'b' => 'def'];
+class DB
+{
+    private static $data = [
+        'name' => 'Nawawish',
+        'surname' => 'Samerpark'
+    ];
 
-array_walk($x, function (&$value, $key) {
-    $value = "$key = $value";
-});
+    public function select($key)
+    {
+        return self::$data[$key];
+    }
 
-var_dump($x);
+    public function update()
+    {
+
+    }
+}
+
+var_dump(DB::select('name'));
+
+$db = new DB();
+var_dump($db->select('name'));

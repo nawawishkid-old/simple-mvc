@@ -7,9 +7,9 @@ use Core\Support\Debugger;
 
 class View
 {
-    private $directory = '';
+    private static $directory = '';
 
-    private $fileExtension = '';
+    private static $fileExtension = '';
 
     public function __construct(array $configs = null)
     {
@@ -18,34 +18,54 @@ class View
             return;
         }
 
-        $this->config([
-            'directory' => Config::get('view.directory'),
-            'file_extension' => Config::get('view.file_extension')
-        ]);
+        self::checkConfig();
     }
 
-    public function config(array $configs)
+    public static function config(array $configs)
     {
-        $this->directory = $configs['directory'];
-        $this->fileExtension = $configs['file_extension'];
+        self::$directory = $configs['directory'];
+        self::$fileExtension = $configs['file_extension'];
+    }
+
+    public function render(string $viewName, $data)
+    {
+        echo self::get($viewName, $data);
     }
 
     public function get(string $viewName, $data)
     {
+        self::checkConfig();
+        // (new Debugger())->varDump(self::$directory, 'Directory');
+        $data = (object) $data;
+
         ob_start();
-        include $this->directory . '/' . $viewName . '.php';
+        include self::$directory . '/' . $viewName . '.php';
         return ob_get_clean();
     }
 
-    public function dir(string $path)
-    {
-        if (! \file_exists($path) || ! \is_dir($path)) {
-            throw new \Exception("Error: Given directory path does not exists or not a directory, $path", 1);
+    // public function dir(string $path)
+    // {
+    //     if (! \file_exists($path) || ! \is_dir($path)) {
+    //         throw new \Exception("Error: Given directory path does not exists or not a directory, $path", 1);
             
+    //     }
+
+    //     self::$directory = $path;
+
+    //     return $this;
+    // }
+
+    private static function checkConfig()
+    {
+        if (! empty(self::$directory) || ! empty(self::$fileExtension)) {
+            return;
         }
 
-        $this->directory = $path;
+        Config::loadModule('view');
 
-        return $this;
+        self::config([
+            'directory' => Config::get('view.directory'),
+            'file_extension' => Config::get('view.file_extension')
+        ]);
     }
 }

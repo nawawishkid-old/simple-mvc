@@ -7,38 +7,49 @@ use Core\Support\Collection;
 use Core\Support\Debugger;
 use Core\Support\Traits\SQLComposer;
 
-class Model
+abstract class Model
 {
     private $db;
 
-    private $table;
+    // protected static $table = [];
 
     private $selectedRecord;
 
     private $newRecord;
 
-    public function __construct(string $table)
+    private static $instances = [];
+
+    public function __construct(string $table = null)
     {
-        $this->table = $table;
-        $this->db = new DB();
+        // self::checkCalledClassInstance();
+        // DB = new DB();
         $this->selectedRecord = new Collection();
         $this->newRecord = new Collection();
     }
 
+    // public function __callStatic(string $method, $arguments)
+    // {
+    //     var_dump('CALL STATIC!');
+    //     $instance = new self();
+    //     return \call_user_func_array([$instance, $method], $arguments);
+    // }
+
     public function find(string $column, string $operator, $value)
     {
-        $this->db->select(['*'], $this->table)
+        self::checkCalledClassInstance();
+
+        DB::select(['*'], self::getCalledClassInstance()->getTable())
                     ->where($column, $operator, $value);
         
-        return $this->db;
+        return DB;
     }
 
     protected function get()
     {
-        $result = $this->db->fetch();
-        $this->selectedRecord->reset($result);
+        $result = DB::fetch();
+        self::getCalledClassInstance()->selectedRecord->reset($result);
         
-        return $this->selectedRecord;
+        return self::getCalledClassInstance()->selectedRecord;
     }
 
     /**
@@ -46,9 +57,9 @@ class Model
      */
     public function select(array $columns)
     {
-        $this->db->select($columns, $this->table);
+        DB::select($columns, self::getCalledClassInstance()->getTable());
 
-        return $this->db;
+        return DB;
     }
 
     /**
@@ -63,7 +74,7 @@ class Model
             }
 
             foreach ($records as $record) {
-                $this->add($record);
+                self::add($record);
             }
         }
 
@@ -79,14 +90,14 @@ class Model
         // (new Debugger())->varDump($columns, "Insert columns");
         // (new Debugger())->varDump($values, "Insert values");
 
-        $this->db->insert($this->table, $columns, $values);
-        $result = $this->db->execute('insert_into');
+        DB::insert(self::getCalledClassInstance()->getTable(), $columns, $values);
+        $result = DB::execute('insert_into');
 
         if (! $result) {
             throw new \Exception("Error: Could not insert data", 1);
             
         }
-        // var_dump($this->db->compose());
+        // var_dump(DB::compose());
         // exit;
     }
 
@@ -96,8 +107,6 @@ class Model
     public function add(array $record)
     {
         $this->newRecord->push($record);
-
-        return $this;
     }
 
     public function update(array $updatedValues = null)
@@ -107,21 +116,21 @@ class Model
         }
 
         // ควรให้ $values เป็น callable ได้ด้วย?
-        $this->db->update($this->table, $values);
+        DB::update(self::getCalledClassInstance()->getTable(), $values);
 
-        return $this->db;
+        return DB;
     }
 
     public function save()
     {
-        // (new Debugger())->varDump($this->db->baseKeywords, 'Base keywords');
+        // (new Debugger())->varDump(DB::baseKeywords, 'Base keywords');
 
-        if (empty($this->db->baseKeywords['update'])) {
+        if (empty(DB::baseKeywords['update'])) {
             throw new \Exception("Error: Could not update record. You have to call update() method before call save() method", 1);
             
         }
         
-        $result = $this->db->execute('update');
+        $result = DB::execute('update');
 
         if (! $result) {
             throw new \Exception("Error: Could not update data", 1);
@@ -131,15 +140,15 @@ class Model
 
     public function delete()
     {
-        $this->db->deleteFrom($this->table);
-        (new Debugger())->varDump($this->db->compose('delete_from'));
+        DB::deleteFrom(self::getCalledClassInstance()->getTable());
+        // (new Debugger())->varDump(DB::compose('delete_from'));
 
-        return $this->db;
+        return DB;
     }
 
     public function confirmDelete()
     {
-        $result = $this->db->execute('delete_from');
+        $result = DB::execute('delete_from');
 
         if (! $result) {
             throw new \Exception("Error: Could not delete data", 1);
@@ -152,7 +161,16 @@ class Model
      */
     public function all()
     {
-        return $this->get()->all();
+        // (new Debugger())->varDump(\get_called_class(), 'Class');
+        // exit;
+        self::checkCalledClassInstance();
+        // $calledClass = \get_called_class();
+        // $instance = new $calledClass;
+        // $instance->all()
+
+        self::select(['*']);
+
+        return self::get()->all();
     }
 
     /**
@@ -160,6 +178,52 @@ class Model
      */
     public function toJson()
     {
-        return $this->get()->toJson();
+        return self::get()->toJson();
     }
+
+    private function checkCalledClassInstance()
+    {
+        $calledClass = \get_called_class();
+
+        if (empty(self::$instances[$calledClass])) {
+            self::setCalledClassInstance($calledClass);
+        }
+    }
+
+    private function getCalledClassInstance()
+    {
+        $calledClass = \get_called_class();
+        $instance = self::$instances[$calledClass];
+        // INFINITE LOOP HERE!
+
+        if (empty($instance)) {
+            self::setCalledClassInstance($calledClass);
+        }
+
+        return self::$instances[$calledClass];
+    }
+
+    private function setCalledClassInstance(string $className)
+    {
+        $calledClass = \get_called_class();
+        $instance = new $calledClass;
+        
+        // $instance->selectedRecord = new Collection();
+        // $instance->newRecord = new Collection();
+
+        self::$instances[$calledClass] = $instance;
+    }
+
+    public function getTable()
+    {
+        return $this->table;
+    }
+
+    // private function getCalledClassTable()
+    // {
+    //     $calledClass = \get_called_class();
+    //     $instance = new $calledClass;
+
+    //     return $instance->table;
+    // }
 }

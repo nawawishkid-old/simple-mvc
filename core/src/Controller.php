@@ -2,18 +2,13 @@
 
 namespace Core;
 
-use Core\View;
-use Core\Model;
+use Core\Output\View;
+use Core\Database\Model;
 
 class Controller
 {
-    public function __construct()
+    public function __construct(Model $model)
     {
-        // $this->model = new Model()
-    }
-
-    public function view()
-    {
-        
+        $this->model = $model;
     }
 }

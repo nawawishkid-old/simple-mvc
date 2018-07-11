@@ -2,14 +2,14 @@
 
 namespace Core\Database;
 
-use Core\Support\Traits\SQLComposer;
+// use Core\Support\Traits\SQLComposer;
 use Core\Support\Debugger;
 use Core\Config;
 use \PDO;
 
-class DBManager
+class DBManager extends SQLComposer
 {
-    use SQLComposer;
+    // use SQLComposer;
 
     private static $conn = null;
 
@@ -47,29 +47,32 @@ class DBManager
 
     public function execute(string $baseKeyword = null)
     {
-        $this->connectionReady();
+        self::connectionReady();
 
-        $keyword = \is_null($baseKeyword) ? $this->selectedBaseKeyword : $baseKeyword;
-        $statement = $this->compose($keyword);
+        $keyword = \is_null($baseKeyword) ? self::$selectedBaseKeyword : $baseKeyword;
+        $statement = self::compose($keyword);
 
         // (new Debugger())->varDump($keyword, "DBManager::execute() keyword");
         (new Debugger())->varDump($statement, "DBManager::execute() statement");
-        (new Debugger())->varDump($this->inputs, "DBManager::execute() \$this->inputs");
+        (new Debugger())->varDump(self::$inputs, "DBManager::execute() \self::$inputs");
 
         $stmt = self::$conn->prepare($statement);
-        $stmt->execute($this->inputs[$keyword]);
 
-        $this->resetStatement();
-        // var_dump($this->inputs[$keyword]);
+        $stmtInputs = ($keyword === 'select') ? null : self::$inputs[$keyword];
+
+        $stmt->execute($stmtInputs);
+
+        self::resetStatement();
+        // var_dump(self::$inputs[$keyword]);
 
         return $stmt;
     }
 
     public function fetch()
     {
-        $this->connectionReady();
+        self::connectionReady();
 
-        $stmt = $this->execute('select');
+        $stmt = self::execute('select');
 
         $results = [];
 
@@ -80,7 +83,7 @@ class DBManager
         return $results;
     }
 
-    private function connectionReady()
+    private static function connectionReady()
     {
         if (! isset(self::$conn)) {
             self::connect();

@@ -3,13 +3,13 @@
 use Core\Database\Model;
 use Core\Support\Debugger;
 
-$model = new Model('wp_postmeta');
-$model->add([
-    'post_id' => 21,
-    'meta_key' => 'สวัสดีครับ',
-    'meta_value' => 'อาโล้ห่าาาา!!!     '
-]);
-$model->create();
+// $model = new Model('wp_postmeta');
+// $model->add([
+//     'post_id' => 21,
+//     'meta_key' => 'สวัสดีครับ',
+//     'meta_value' => 'อาโล้ห่าาาา!!!     '
+// ]);
+// $model->create();
 
 // $model->create([
 //     [
@@ -23,15 +23,15 @@ $model->create();
 //         'meta_value' => 'Samerpark!!!'
 //     ]
 // ]);
-$model->select(['meta_id']);
+// $model->select(['meta_id']);
 // var_dump($model->toJson());
 
-$model->update([
-    'meta_value' => 'ฮายยยยยย     '
-])->where('post_id', '=', 21);
-$model->save();
+// $model->update([
+//     'meta_value' => 'ฮายยยยยย     '
+// ])->where('post_id', '=', 21);
+// $model->save();
 
 // $model->create();
-$model->delete()
-        ->where('post_id', '=', 21);
-$model->confirmDelete();
+// $model->delete()
+//         ->where('post_id', '=', 21);
+// $model->confirmDelete();

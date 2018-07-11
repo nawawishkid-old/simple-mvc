@@ -1,6 +1,6 @@
 <?php
 
-namespace Core\API;
+namespace Core\API\Route;
 
 use Core\Input\Request;
 use Core\Output\Response;
@@ -10,7 +10,7 @@ class Router
 {
     private $request;
 
-    private $response;
+    // private $response;
 
     private $registeredRoute = [];
 
@@ -37,7 +37,7 @@ class Router
         $this->response = $response;
     }
 
-    public function activate()
+    public function ready()
     {
         // echo $this->request->method;
         $request = $this->request;
@@ -70,50 +70,63 @@ class Router
         $this->executeCallback();
     }
 
-    public function get(string $route, callable $callback)
+    public function get(string $route, $callback)
     {
         $this->registerRoute('GET', $route, $callback);
 
         return $this;
     }
 
-    public function post(string $route, callable $callback)
+    public function post(string $route, $callback)
     {
         $this->registerRoute('POST', $route, $callback);
 
         return $this;
     }
 
-    public function put(string $route, callable $callback)
+    public function put(string $route, $callback)
     {
         $this->registerRoute('PUT', $route, $callback);
 
         return $this;
     }
 
-    public function delete(string $route, callable $callback)
+    public function delete(string $route, $callback)
     {
         $this->registerRoute('DELETE', $route, $callback);
 
         return $this;
     }
 
-    public function option(string $route, callable $callback)
+    public function option(string $route, $callback)
     {
         $this->registerRoute('OPTION', $route, $callback);
 
         return $this;
     }
 
-    public function notFound(callable $callback)
+    public function notFound($callback)
     {
         $this->notFoundCallback = $callback;
 
         return $this;
     }
 
-    private function registerRoute(string $method, string $route, callable $callback)
+    // public function default($callback)
+    // {
+    //     $this->registerRoute($this->prevRegisteredRoute, $callback);
+
+    //     return $this;
+    // }
+
+    private function registerRoute(string $method, string $route, $callback)
     {
+        $this->throwTypeIsValid($callback, [
+            'callable',
+            'array',
+            'string'
+        ]);
+
         if (!$this->methodIsValid($method)) {
             throw new \Exception("Invalid request method, $method", 1);
             
@@ -139,16 +152,59 @@ class Router
         // echo '</pre>';
     }
 
-    private function executeCallback(callable $callback = null)
+    private function executeCallback($callback = null)
     {
-        if (is_null($callback)) {
+        if (\is_null($callback)) {
             $callback = $this->matchedRoute['callback'];
             $extraArguments = (object) $this->matchedRoute['arguments'];
         } else {
             $extraArguments = null;
         }
 
+        if (\is_null($callback)) {
+            return;
+        }
+
+        $this->throwTypeIsValid($callback, [
+            'callable',
+            'array',
+            'string'
+        ]);
+
+        // Instantiate class if necessary.
+        if (\is_array($callback) && \is_a($callback[0], Controller::class)) {
+            $callback[0] = new $callback[0];
+        }
+
         \call_user_func_array($callback, [$this->request, $this->response, $extraArguments]);
+    }
+
+    private function throwTypeIsValid($var, array $types)
+    {
+        if (! $this->typeIsValid($var, $types)) {
+            throw new \Exception("Error: Invalid argument types; Valid type(s) is/are " . implode(', ', $types) . "; " . gettype($var) . " given", 1);
+            
+        }
+
+        return true;
+    }
+
+    private function typeIsValid($var, array $types)
+    {
+        foreach ($types as $type) {
+            if (! \function_exists('is_' . $type)) {
+                throw new \Exception("Error: Unknown type, $type", 1);
+                
+            }
+
+            $result = \call_user_func_array('is_' . $type, [$var]);
+
+            if ($result) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function methodIsValid(string $method)
@@ -160,6 +216,11 @@ class Router
     {
         $method = $this->request->method;
         $uri = $this->request->uri;
+
+        // If no route registered
+        if (empty($this->registeredRoute[$method])) {
+            return;
+        }
 
         foreach ($this->registeredRoute[$method] as $route => $value) {
             $matches = $this->matchRouteWithURI($route, $uri);

@@ -1,25 +1,25 @@
 <?php
 
-namespace Core\Support\Traits;
+namespace Core\Database;
 
 use Core\Support\Debugger;
 
-trait SQLComposer
+class SQLComposer
 {
-    public $baseKeywords = [
+    public static $baseKeywords = [
         'select' => [],
         'insert_into' => [],
         'update' => [],
         'delete_from' => []
     ];
 
-    public $subKeywords = [
+    public static $subKeywords = [
         'where',
         'having',
         'on'
     ];
 
-    private $validOperator = [
+    private static $validOperator = [
         '=',
         '<>',
         '<',
@@ -31,11 +31,13 @@ trait SQLComposer
         'in'
     ];
 
-    private $selectedBaseKeyword;
+    private static $selectedBaseKeyword;
 
-    private $isFirstKeyword = true;
+    private static $isFirstKeyword = true;
 
-    protected $inputs = [
+    private static $prevKeyword;
+
+    protected static $inputs = [
         'insert_into' => [],
         'update' => [],
         'delete_from' => []
@@ -46,13 +48,13 @@ trait SQLComposer
      * 
      * @api
      */
-    public function compose(string $baseKeywords = null)
+    public static function compose(string $baseKeywords = null)
     {
-        $select = \is_null($baseKeywords) ? $this->selectedBaseKeyword : $baseKeywords;
+        $select = \is_null($baseKeywords) ? self::$selectedBaseKeyword : $baseKeywords;
 
-        (new Debugger())->varDump($this->baseKeywords, "SQLCompose::compose() \$this->baseKeywords");
+        // (new Debugger())->varDump(self::$baseKeywords, "SQLCompose::compose() \self::$baseKeywords");
 
-        return \implode('', $this->baseKeywords[$select]);
+        return \implode('', self::$baseKeywords[$select]);
     }
 
     /**
@@ -60,14 +62,14 @@ trait SQLComposer
      * 
      * @api
      */
-    public function select(array $columns, string $table)
+    public static function select(array $columns, string $table)
     {
         $columnString = implode(', ', $columns);
         $stmt = "SELECT $columnString FROM $table" . PHP_EOL;
 
-        $this->addKeyword('select', $stmt);
+        self::addKeyword('select', $stmt);
 
-        return $this;
+        return self;
     }
 
     /**
@@ -75,12 +77,12 @@ trait SQLComposer
      * 
      * @api
      */
-    public function insert(string $table, array $columns = [], array $values)
+    public static function insert(string $table, array $columns = [], array $values)
     {
-        $this->addInputs('insert_into', $values);
-        // $this->inputs['insert_into'] = $values;
+        self::addInputs('insert_into', $values);
+        // self::$inputs['insert_into'] = $values;
 
-        // if ($this->isFirstKeyword) {
+        // if (self::$isFirstKeyword) {
         //     $columnString = \implode(', ', $columns);
         //     $insert = "INSERT INTO $table ($columnString) VALUES";
         // } else {
@@ -88,7 +90,7 @@ trait SQLComposer
         // }
 
         $columnString = \implode(', ', $columns);
-        $preparedValues = $this->formatInsertValues($columns, $values);
+        $preparedValues = self::formatInsertValues($columns, $values);
 
         // var_dump($preparedValues);
         
@@ -96,9 +98,9 @@ trait SQLComposer
 
         // (new Debugger())->varDump($stmt, "SQLCompose::insert() statement");
 
-        $this->addKeyword('insert_into', $stmt, true);
+        self::addKeyword('insert_into', $stmt, true);
 
-        return $this;
+        return self;
     }
 
     /**
@@ -106,25 +108,25 @@ trait SQLComposer
      * 
      * @api
      */
-    public function update(string $table, array $setClauseValues)
+    public static function update(string $table, array $setClauseValues)
     {
-        $this->addInputs('update', $setClauseValues);
+        self::addInputs('update', $setClauseValues);
 
-        $setClause = $this->composeUpdateSetClause($setClauseValues);
+        $setClause = self::composeUpdateSetClause($setClauseValues);
         $stmt = "UPDATE $table SET $setClause";
 
-        $this->addKeyword('update', $stmt, true);
+        self::addKeyword('update', $stmt, true);
 
-        return $this;
+        return self;
     }
 
-    public function deleteFrom(string $table)
+    public static function deleteFrom(string $table)
     {
         $stmt = "DELETE FROM $table" . PHP_EOL;
         
-        $this->addKeyword('delete_from', $stmt, true);
+        self::addKeyword('delete_from', $stmt, true);
 
-        return $this;
+        return self;
     }
 
     /**
@@ -133,18 +135,18 @@ trait SQLComposer
      * @api
      */
     // Add where clause to baseKeyword
-    public function where(string $column, string $operator, $value)
+    public static function where(string $column, string $operator, $value)
     {
-        $this->addInputs($this->selectedBaseKeyword, $value);
-        // $this->inputs[$this->selectedBaseKeyword][] = $this->validateValue($value);
+        self::addInputs(self::$selectedBaseKeyword, $value);
+        // self::$inputs[self::$selectedBaseKeyword][] = self::validateValue($value);
 
-        $where = ($this->prevKeyword === 'where') ? 'AND' : 'WHERE';
-        $statement = $this->composeOperatorStatement($column, $operator, $value);
+        $where = (self::$prevKeyword === 'where') ? 'AND' : 'WHERE';
+        $statement = self::composeOperatorStatement($column, $operator, $value);
         $statement = "{$where} {$statement}" . PHP_EOL;
         
-        $this->addKeyword('where', $statement);
+        self::addKeyword('where', $statement);
 
-        return $this;
+        return self;
     }
 
     /**
@@ -152,62 +154,62 @@ trait SQLComposer
      * 
      * @api
      */
-    public function orWhere(string $column, string $operator, $value)
+    public static function orWhere(string $column, string $operator, $value)
     {
-        $this->prevKeywordIsMatched(['where']);
-        $this->addInputs($this->selectedBaseKeyword, $value);
+        self::prevKeywordIsMatched(['where']);
+        self::addInputs(self::$selectedBaseKeyword, $value);
 
-        $statement = $this->composeOperatorStatement($column, $operator, $value);
+        $statement = self::composeOperatorStatement($column, $operator, $value);
         $statement = "OR $statement" . PHP_EOL;
         
-        $this->addKeyword('or_where', $statement);
+        self::addKeyword('or_where', $statement);
 
-        return $this;
+        return self;
     }
 
-    protected function addInputs(string $baseKeyword, $inputs)
+    protected static function addInputs(string $baseKeyword, $inputs)
     {
         if (! \is_array($inputs)) {
-            $this->inputs[$baseKeyword][] = $this->validateValue($inputs);
+            self::$inputs[$baseKeyword][] = self::validateValue($inputs);
             
             return;
         }
 
         array_walk_recursive($inputs, function ($value, $key) use ($baseKeyword) {
             // echo $value . '<br>';
-            $this->inputs[$baseKeyword][] = $this->validateValue($value);
+            self::$inputs[$baseKeyword][] = self::validateValue($value);
         });
     }
 
     /**
      * Add any SQL keyword for later composition.
      */
-    protected function addKeyword(string $keyword, $value, bool $forceFirstKeyword = false)
+    protected static function addKeyword(string $keyword, $value, bool $forceFirstKeyword = false)
     {
         if ($forceFirstKeyword) {
-            $this->isFirstKeyword = true;
+            self::$isFirstKeyword = true;
         }
 
-        if ($this->isFirstKeyword) {
-            $this->isFirstKeyword = false;
-            if (! $this->isBaseKeyword($keyword)) {
-                throw new \Exception("Error: Base keyword required i.e. " . implode(', ', $this->baseKeywords), 1);
+        if (self::$isFirstKeyword) {
+            self::$isFirstKeyword = false;
+            if (! self::isBaseKeyword($keyword)) {
+                throw new \Exception("Error: Base keyword required i.e. " . implode(', ', self::$baseKeywords), 1);
                 
             }
 
-            $this->selectedBaseKeyword = $keyword;
-            $this->baseKeywords[$keyword][] = $value;
+            self::$selectedBaseKeyword = $keyword;
+            self::$baseKeywords[$keyword][] = $value;
         } else {
-            $this->baseKeywords[$this->selectedBaseKeyword][] = $value;
+            self::$baseKeywords[self::$selectedBaseKeyword][] = $value;
         }
 
-        $this->prevKeyword = $keyword;
+        self::$prevKeyword = $keyword;
     }
 
-    protected function resetStatement()
+    protected static function resetStatement()
     {
-        $this->resetInputArray();
-        // $this->resetBaseKeywordArray();
+        self::resetInputArray();
+        // self::resetBaseKeywordArray();
     }
 
     /**
@@ -215,29 +217,29 @@ trait SQLComposer
      * 
      * @param array $setClauseValues Associative array where the key is a column name and the value is value to update
      */
-    private function composeUpdateSetClause(array $setClauseValues)
+    private static function composeUpdateSetClause(array $setClauseValues)
     {
         \array_walk($setClauseValues, function (&$value, $key) {
-            // $value = $this->validateValue($value);
+            // $value = self::validateValue($value);
             $value = "$key = ?" . PHP_EOL;
         });
 
         return implode(', ', $setClauseValues);
     }
 
-    private function resetInputArray()
+    private static function resetInputArray()
     {
-        $this->input = [];
+        self::$inputs = [];
     }
 
-    private function resetBaseKeywordArray()
+    private static function resetBaseKeywordArray()
     {
-        $this->baseKeywords = \array_map(function ($item) {
+        self::$baseKeywords = \array_map(function ($item) {
             return [];
-        }, $this->baseKeywords);
+        }, self::$baseKeywords);
     }
 
-    private function formatInsertValues(array $columns, array $values)
+    private static function formatInsertValues(array $columns, array $values)
     {
         $preparedValuesArray = \array_replace($values, \array_fill(0, count($values), '?'));
 
@@ -271,19 +273,19 @@ trait SQLComposer
         return $preparedValues;
     }
 
-    private function validateValue($value)
+    private static function validateValue($value)
     {
         $value = \is_string($value) ? '"' . \trim($value) . '"' : $value;
 
         return $value;
     }
 
-    private function isBaseKeyword(string $keyword)
+    private static function isBaseKeyword(string $keyword)
     {
-        return empty($this->baseKeywords[$keyword]);
+        return empty(self::$baseKeywords[$keyword]);
     }
 
-    private function callIfCallable($mayCallable, $arguments)
+    private static function callIfCallable($mayCallable, $arguments)
     {
         if (is_callable($mayCallable)) {
             return \call_user_func_array($mayCallable, (array) $arguments);
@@ -292,13 +294,13 @@ trait SQLComposer
         return $mayCallable;
     }
 
-    private function composeOperatorStatement(string $field, string $operator, string $input)
+    private static function composeOperatorStatement(string $field, string $operator, string $input)
     {
-        $this->input[] = $input;
+        self::addInputs(self::$prevKeyword, $input);
 
         $statement = "$field $operator ?";
 
-        if (! $this->keywordOperatorIsValid($operator)) {
+        if (! self::keywordOperatorIsValid($operator)) {
             throw new \Exception("Error: Invalid query operator, $operator on '$statement'", 1);
             
         }
@@ -306,9 +308,9 @@ trait SQLComposer
         return $statement;
     }
 
-    private function prevKeywordIsMatched(array $keywords)
+    private static function prevKeywordIsMatched(array $keywords)
     {
-        if (! \in_array($this->prevKeyword, $keywords)) {
+        if (! \in_array(self::$prevKeyword, $keywords)) {
             throw new \Exception("Error: Keyword $keywords is required first.", 1);
             
         }
@@ -316,12 +318,12 @@ trait SQLComposer
         return true;
     }
 
-    private function keywordAdded(array $keywords, bool $requiredAll = true)
+    private static function keywordAdded(array $keywords, bool $requiredAll = true)
     {
         $found = false;
 
         foreach ($keywords as $key => $keyword) {
-            if (empty($this->queryStructure[$keyword])) {
+            if (empty(self::$queryStructure[$keyword])) {
                 if ($requiredAll) {
                     return false;
                 } else {
@@ -335,13 +337,13 @@ trait SQLComposer
         return $found;
     }
 
-    private function queryKeywordIsValid(string $keyword)
+    private static function queryKeywordIsValid(string $keyword)
     {
-        return \in_array($keyword, \array_keys($this->queryStructure));
+        return \in_array($keyword, \array_keys(self::$queryStructure));
     }
 
-    private function keywordOperatorIsValid(string $operator)
+    private static function keywordOperatorIsValid(string $operator)
     {
-        return \in_array(\strtolower($operator), \array_keys($this->validOperator));
+        return \in_array(\strtolower($operator), \array_keys(self::$validOperator));
     }
 }
