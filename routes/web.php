@@ -1,10 +1,13 @@
 <?php
 
 use Core\User\API\Route;
+use App\Controller as Ctrl;
 
-Route::get('/', function () {
+Route::get('/hi', function () {
     echo "Hello, world!";
 });
+
+Route::get('/', [Ctrl\PostMeta::class, 'index']);
 // use Core\API\Route\Route;
 // use App\Controller\ExampleController;
 

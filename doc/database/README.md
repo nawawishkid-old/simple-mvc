@@ -73,19 +73,22 @@ unset($db);
 ```
 
 ## Model
-Model will be booted in application booting process
+Model will be initialized in application starting process
 
 ### Intention
 
 
 ### Usage
 ```php
-Model::where()
-Model::first()
-Model::all()
-Model::find()
-Model::add()
-Model::create()
-Model::update()
-Model::delete()
+// Initialize Model in app's init
+Model::init();
+
+Model::where();
+Model::first();
+Model::all();
+Model::find();
+Model::add();
+Model::create();
+Model::update();
+Model::delete();
 ```

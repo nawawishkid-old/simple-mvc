@@ -1,5 +1,6 @@
 <?php
 
+use Core\App;
 use Core\Http\Request;
 use Core\Http\Response;
 use Core\Router\Router;

@@ -6,6 +6,8 @@ use Core\Router\Router;
 
 class Route
 {
+    private static $router;
+    
     public static function __callStatic(string $methodName, $arguments)
     {
         return \call_user_func_array([self::$router, $methodName], $arguments);

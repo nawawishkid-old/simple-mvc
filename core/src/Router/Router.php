@@ -2,6 +2,8 @@
 
 namespace Core\Router;
 
+use Core\Http\Request;
+use Core\Http\Response;
 // use Core\Input\Request;
 // use Core\Output\Response;
 // use Core\Output\View;
@@ -37,6 +39,9 @@ class Router
         $this->response = $response;
     }
 
+    /**
+     * @api
+     */
     public function ready()
     {
         $request = $this->request;
@@ -58,6 +63,9 @@ class Router
         $this->executeCallback();
     }
 
+    /**
+     * @api
+     */
     public function get(string $route, $callback)
     {
         $this->registerRoute('GET', $route, $callback);
@@ -65,6 +73,9 @@ class Router
         return $this;
     }
 
+    /**
+     * @api
+     */
     public function post(string $route, $callback)
     {
         $this->registerRoute('POST', $route, $callback);
@@ -72,6 +83,9 @@ class Router
         return $this;
     }
 
+    /**
+     * @api
+     */
     public function put(string $route, $callback)
     {
         $this->registerRoute('PUT', $route, $callback);
@@ -79,6 +93,9 @@ class Router
         return $this;
     }
 
+    /**
+     * @api
+     */
     public function delete(string $route, $callback)
     {
         $this->registerRoute('DELETE', $route, $callback);
@@ -86,13 +103,19 @@ class Router
         return $this;
     }
 
-    public function option(string $route, $callback)
+    /**
+     * @api
+     */
+    public function patch(string $route, $callback)
     {
-        $this->registerRoute('OPTION', $route, $callback);
+        $this->registerRoute('PATCH', $route, $callback);
 
         return $this;
     }
 
+    /**
+     * @api
+     */
     public function notFound($callback)
     {
         $this->notFoundCallback = $callback;
@@ -274,7 +297,7 @@ class Router
         $modifier = $required ? '+' : '*';
 
         $result = \preg_replace('/{.*?}/', '(\w' . $modifier . ')', $route);
-        
+
         return $result;
     }
 }

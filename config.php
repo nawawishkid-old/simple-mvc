@@ -1,3 +1,4 @@
 <?php
 
-const APP_ROOT = __DIR__;
+const ROOT = __DIR__;
+const APP_DIR = ROOT . '/app';
