@@ -4,6 +4,7 @@ namespace Core\Router;
 
 use Core\Http\Request;
 use Core\Http\Response;
+use Core\Controller;
 // use Core\Input\Request;
 // use Core\Output\Response;
 // use Core\Output\View;
@@ -42,7 +43,7 @@ class Router
     /**
      * @api
      */
-    public function ready()
+    public function resolve()
     {
         $request = $this->request;
         $uri = $this->addPrefixSlash($request->uri);

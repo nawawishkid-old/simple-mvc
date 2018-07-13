@@ -14,4 +14,7 @@ $app = new App([
     'router' => Router::class
 ]);
 
+// End app
+unset($app);
+
 ```

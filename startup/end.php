@@ -1,3 +1,4 @@
 <?php
 
-$app->end();
+// $app->end();
+unset($app);

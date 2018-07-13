@@ -1,24 +1,13 @@
 <?php
 
-class DB
-{
-    private static $data = [
-        'name' => 'Nawawish',
-        'surname' => 'Samerpark'
-    ];
+function z() {
+    echo 'zzz';
+    return false;
+}
+function x() {
+    $a = [];
 
-    public function select($key)
-    {
-        return self::$data[$key];
-    }
-
-    public function update()
-    {
-
-    }
+    return empty($a) || z();
 }
 
-var_dump(DB::select('name'));
-
-$db = new DB();
-var_dump($db->select('name'));
+var_dump(x());

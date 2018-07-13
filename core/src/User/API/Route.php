@@ -10,17 +10,17 @@ class Route
     
     public static function __callStatic(string $methodName, $arguments)
     {
-        return \call_user_func_array([self::$router, $methodName], $arguments);
+        return \call_user_func_array([static::$router, $methodName], $arguments);
     }
 
-    public static function wait(Router &$router)
+    public static function initial(Router &$router)
     {
-        self::$router = $router;
+        static::$router = $router;
     }
 
-    public static function ready()
+    public static function resolve()
     {
-        self::$router->ready();
+        static::$router->resolve();
     }
 
     // Just to make __callStatic works
