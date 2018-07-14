@@ -9,32 +9,34 @@ class Builder
     use Concerns\ConditionKeywords;
     use Concerns\Validations;
 
-    // private $statement = [];
-
     private $rawQuery;
 
     private $preparedQuery;
 
     private $table;
 
-    // private $previousKeyword;
-
-    // private $possibleKeywords = [];
-
+    /**
+     * Record all called verb
+     * 
+     * @see Builder::composeCompleteQuery()
+     */
     private $calledVerbs = [];
 
+    /**
+     * Records state of the instance.
+     */
     private $state = [
         'previousVerb' => null,
         'possibleVerbs' => [],
         'previousConjunctions' => null,
         'possibleConjunctions' => [],
-        // 'previousConditions' => null,
         'possibleConditions' => []
     ];
 
-    // private $previousCondition;
-
-    private $queryStructure = [
+    /**
+     * Store all verb query informations
+     */
+    private $queryVerbs = [
         // Example structure
         // 'select' => [
         //     [
@@ -51,6 +53,41 @@ class Builder
         // ]
     ];
 
+    /**
+     * Get states of the instance, and its table
+     */
+    public function __get($name)
+    {
+        if ($name === 'table') {
+            return $this->table;
+        }
+        
+        if (! in_array($name, array_keys($this->state))) {
+            throw new \Exception(
+                sprintf(
+                    "Error: Given state, %s, not found. Available states are: %s",
+                    $name,
+                    implode(', ', $this->state)
+                ), 
+                1
+            );
+            
+        }
+
+        return $this->state[$name];
+    }
+
+    /**
+     * Get query structure of the instance
+     */
+    public function getQueryVerbs($verb)
+    {
+        return $this->queryVerbs[$verb];
+    }
+
+    /**
+     * Set database table to the instance. Must be called before other query method
+     */
     public function table($tableName)
     {
         $this->table = $tableName;
@@ -87,11 +124,11 @@ class Builder
             'conjunctions' => []
         ];
         
-        if (empty($this->queryStructure[$verb])) {
-            $this->queryStructure[$verb] = [];
+        if (empty($this->queryVerbs[$verb])) {
+            $this->queryVerbs[$verb] = [];
         }
 
-        $this->queryStructure[$verb][] = $structure;
+        $this->queryVerbs[$verb][] = $structure;
     }
 
     /**
@@ -114,7 +151,7 @@ class Builder
         $this->state['possibleConditions'] = $possibleConditions;
         $this->state['previousConjunction'] = $conjunction;
 
-        $lastVerbStructure = array_pop($this->queryStructure[$this->state['previousVerb']]);
+        $lastVerbStructure = array_pop($this->queryVerbs[$this->state['previousVerb']]);
         
         if (empty($lastVerbStructure['conjunctions'][$conjunction])) {
             $lastVerbStructure['conjunctions'][$conjunction] = [];
@@ -122,7 +159,7 @@ class Builder
 
         $lastVerbStructure['conjunctions'][$conjunction]['first'] = $arguments;
 
-        array_push($this->queryStructure[$this->state['previousVerb']], $lastVerbStructure);
+        array_push($this->queryVerbs[$this->state['previousVerb']], $lastVerbStructure);
     }
 
     /**
@@ -145,7 +182,7 @@ class Builder
             
         }
 
-        $lastVerbStructure = array_pop($this->queryStructure[$this->state['previousVerb']]);
+        $lastVerbStructure = array_pop($this->queryVerbs[$this->state['previousVerb']]);
         
         if (empty($lastVerbStructure['conjunctions'][$of][$type])) {
             $lastVerbStructure['conjunctions'][$of][$type] = [];
@@ -153,7 +190,7 @@ class Builder
 
         $lastVerbStructure['conjunctions'][$of][$type][] = $arguments;
 
-        array_push($this->queryStructure[$this->state['previousVerb']], $lastVerbStructure);
+        array_push($this->queryVerbs[$this->state['previousVerb']], $lastVerbStructure);
     }
 
     // ========================== Query composition methods ===============================
@@ -167,7 +204,7 @@ class Builder
         foreach ($this->calledVerbs as $calledVerb) {
             $composedQuery[] = $this->composeAllVerbs(
                 $calledVerb, 
-                $this->queryStructure[$calledVerb], 
+                $this->queryVerbs[$calledVerb], 
                 $prepared
             );
         }

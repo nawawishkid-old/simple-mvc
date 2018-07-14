@@ -20,7 +20,7 @@ trait ConjunctionKeywords
 
     private function composeWhereConjunction($arguments, bool $prepared = false)
     {
-        $format = "WHERE %s %s %s" . PHP_EOL; // . implode(' ', $arguments);
+        $format = " WHERE %s %s %s"; // . implode(' ', $arguments);
 
         $arguments[2] = $prepared ? '?' : $this->validateValue($arguments[2]);
         

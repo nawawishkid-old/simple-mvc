@@ -11,9 +11,23 @@ trait ConditionKeywords
         $this->addCondition('and', func_get_args(), 'where');
     }
 
+    public function orWhere(string $column, string $operator, $value)
+    {
+        $this->addCondition('or', func_get_args(), 'where');
+    }
+
     public function composeAndCondition($arguments, bool $prepared = false) 
     {
-        $format = "AND %s %s %s";
+        $format = " AND %s %s %s";
+
+        $arguments[2] = $prepared ? '?' : $this->validateValue($arguments[2]);
+        
+        return sprintf($format, $arguments[0], $arguments[1], $arguments[2]);
+    }
+
+    public function composeOrCondition($arguments, bool $prepared = false) 
+    {
+        $format = " OR %s %s %s";
 
         $arguments[2] = $prepared ? '?' : $this->validateValue($arguments[2]);
         

@@ -6,7 +6,7 @@ trait VerbKeywords
 {
     public function select($columns)
     {
-        $columns = is_array($columns) ? $columnns : func_get_args();
+        $columns = is_array($columns) ? $columns : func_get_args();
 
         $this->addVerb(
             'select', 
@@ -34,7 +34,7 @@ trait VerbKeywords
 
     public function composeSelectVerb($arguments, bool $prepared = false) 
     {
-        $format = "SELECT %s FROM %s" . PHP_EOL;
+        $format = "SELECT %s FROM %s";
 
         return sprintf($format, implode(', ', $arguments), $this->table);
     }
