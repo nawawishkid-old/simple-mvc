@@ -5,6 +5,8 @@ namespace Core;
 use Core\User\API\Route as UserRouteApi;
 // use Core\User\API\Model as UserModelApi;
 use Core\Database\Model;
+use Core\Http\Request;
+use Core\Http\Response;
 
 class App
 {
@@ -14,8 +16,6 @@ class App
 
     private $services = [];
 
-    const REQUEST_KEY = 'request';
-    const RESPONSE_KEY = 'response';
     const ROUTER_KEY = 'router';
     const VIEW_KEY = 'view';
     const MODEL_KEY = 'model';
@@ -28,24 +28,24 @@ class App
     /**
      * @api
      */
-    public function __construct(array $classes)
+    public function __construct(Request $request, Response $response, array $services)
     {
-        $this->request = new $classes[static::REQUEST_KEY];
-        $this->response = new $classes[static::RESPONSE_KEY];
+        $this->request = $request;
+        $this->response = $response;
 
         // Isn't it should be named 'services' instead of 'services'?
-        $this->services[static::VIEW_KEY] = new $classes[static::VIEW_KEY];
-        $this->services[static::ROUTER_KEY] = new $classes[static::ROUTER_KEY](
+        $this->services[static::VIEW_KEY] = new $services[static::VIEW_KEY];
+        $this->services[static::ROUTER_KEY] = new $services[static::ROUTER_KEY](
             $this->request, 
             $this->response,
             $this->services[static::VIEW_KEY]
         );
-        $this->services[static::DATABASE_CONNECTION_KEY] = new $classes[static::DATABASE_CONNECTION_KEY];
-        $this->services[static::DATABASE_CONTROLLER_KEY] = new $classes[static::DATABASE_CONTROLLER_KEY](
+        $this->services[static::DATABASE_CONNECTION_KEY] = new $services[static::DATABASE_CONNECTION_KEY];
+        $this->services[static::DATABASE_CONTROLLER_KEY] = new $services[static::DATABASE_CONTROLLER_KEY](
             $this->services[static::DATABASE_CONNECTION_KEY]
         );
 
-        // $this->services[static::MODEL_KEY] = $classes[static::MODEL_KEY];
+        // $this->services[static::MODEL_KEY] = $services[static::MODEL_KEY];
 
         $this->initial();
     }
@@ -67,6 +67,11 @@ class App
 
         $this->loadModels();
         $this->loadControllers();
+    }
+
+    private function startServices()
+    {
+        
     }
 
     private function respond()

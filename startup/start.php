@@ -15,9 +15,19 @@ echo '<pre>';
 // var_dump($_FILES);
 echo '</pre>';
 
-$app = new App([
-    'request' => Request::class,
-    'response' => Response::class,
+$request = new Request();
+$response = new Response();
+
+$request->header = getallheaders();
+$request->method = $_SERVER['REQUEST_METHOD'];
+$request->uri = $_SERVER['REQUEST_URI'];
+$request->get = $_GET;
+$request->post = $_POST;
+$request->files = $_FILES;
+$request->sessions = empty($_SESSION) ? [] : $_SESSION;
+$request->cookie = $_COOKIE;
+
+$app = new App($request, $response, [
     'router' => Router::class,
     'view' => View::class,
     'databaseConnection' => DatabaseConnection::class,

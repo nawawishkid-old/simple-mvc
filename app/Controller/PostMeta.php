@@ -24,22 +24,7 @@ class PostMeta extends Controller
 
         $rows = $ctrl->fetch();
 
-        return $rows;
-    }
-
-    public function user($request, $response, $arguments)
-    {
-        $conn = new Connection();
-        $ctrl = new DatabaseController($conn);
-
-        $ctrl->table('wp_users')
-                ->select('*')
-                ->where('user_login', '=', $arguments->username);
-
-        // $result = (new View)->toJson($ctrl->fetch());
-        $result = $ctrl->fetch()->toJson();
-
-        return $response->data($result);
+        return View::get('index', $rows);
     }
 
     public function form($request, $response)

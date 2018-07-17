@@ -63,7 +63,11 @@ class Router
         $modifiedUri = $this->modifyRoute($uri);
 
         if (! empty($this->getMiddlewares($request->method, $modifiedUri))) {
-            $this->executeMiddlewares($request->method, $modifiedUri);
+            $middleware = $this->executeMiddlewares($request->method, $modifiedUri);
+
+            if (! $middleware) {
+                return;
+            }
         }
         
         return $this->executeCallback();
@@ -75,11 +79,17 @@ class Router
             if (is_array($middleware) && is_a($middleware, Middelware::class)) {
                 $middleware = new $middleware;
 
-                $this->executeCallback([$middleware, 'run']);
+                $result = $this->executeCallback([$middleware, 'run']);
+            } else {
+                $result = $this->executeCallback($middleware);
             }
 
-            $this->executeCallback($middleware);
+            if (! $result) {
+                return false;
+            }
         }
+
+        return true;
     }
 
     /**
@@ -92,7 +102,13 @@ class Router
      */
     private function getMiddlewares($method, $route)
     {
-        return $this->registeredRoutes[$method][$route]['middlewares'];
+        $route = empty($this->registeredRoutes[$method][$route]) ? null : $this->registeredRoutes[$method][$route];
+
+        if (empty($route)) {
+            return null;
+        }
+
+        return empty($route['middlewares']) ? null : $route['middlewares'];
     }
 
     /**

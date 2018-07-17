@@ -15,9 +15,11 @@ class Response
 
     private $data;
 
+    private $isRedirected = false;
+
     public function __construct()
     {
-
+        // $this->sessions = $sessions;
     }
 
     public function data($data)
@@ -49,9 +51,29 @@ class Response
         return $this;
     }
 
+    public function redirect($route)
+    {
+        // var_dump($_SERVER['SERVER_NAME']);
+        // var_dump($_SERVER['SERVER_PORT']);
+        $url = 'http://' . $_SERVER['SERVER_NAME'] . ':' . $_SERVER['SERVER_PORT'] . '/' . $route;
+        // $this->header('Location', $url);
+        // $this->isRedirected = true;
+        header('Location: ' . $url);
+        exit();
+    }
+
+    // public function session($key, $value)
+    // {
+    //     if ()
+    // }
+
     public function emit()
     {
         header($this->getComposedHTTPHeader());
+
+        if ($this->isRedirected) {
+            exit();
+        }
 
         $type = gettype($this->data);
 
@@ -78,7 +100,8 @@ class Response
         $header = 'HTTP/' . $this->version . ' ' . $this->status['code'] . ' ' . $this->status['string'] . PHP_EOL;
 
         foreach ($this->header as $key => $value) {
-            $header .= $key . ': ' . $value . PHP_EOL;
+            // echo $key . ': ' . $value . 'bbb';
+            $header .= $key . ': ' . $value;// . PHP_EOL;
         }
 
         return $header;

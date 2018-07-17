@@ -37,6 +37,11 @@ class Collection
     }
 
     // ========================= Get methods ========================
+    public function __get($name)
+    {
+        return $this->collection[$name];
+    }
+
     public function all()
     {
         return $this->collection;
