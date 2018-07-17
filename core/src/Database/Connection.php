@@ -6,8 +6,14 @@ use PDO;
 
 class Connection
 {
+    /**
+     * PDO instance
+     */
     private $conn = null;
 
+    /**
+     * Database connection information.
+     */
     private $connectionInfo = [
         'host' => '',
         'dbname' => '',
@@ -15,16 +21,23 @@ class Connection
         'password' => ''
     ];
 
-    public function __construct()
-    {
-        
-    }
-
+    /**
+     * Close database connection on unset.
+     * 
+     * @return void
+     */
     public function __destruct()
     {
         $this->close();
     }
 
+    /**
+     * Connect to database.
+     * 
+     * @api
+     * 
+     * @return void
+     */
     public function connect()
     {
         $dsn = "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET;
@@ -42,6 +55,14 @@ class Connection
 
     }
 
+    /**
+     * Fetch data from database using given SQL statement.
+     * 
+     * @api
+     * @param string $statement SQL statement.
+     * 
+     * @return array $rows Array of data from database.
+     */
     public function fetch($statement)
     {
         $this->ensureConnection();
@@ -57,6 +78,11 @@ class Connection
         return $rows;
     }
 
+    /**
+     * Close database connection.
+     * 
+     * @return void
+     */
     private function close()
     {
         if (isset($this->conn)) {
@@ -64,6 +90,9 @@ class Connection
         }
     }
 
+    /**
+     * Ensure that there is a connection between the app and the database
+     */
     private function ensureConnection()
     {
         if (! isset($this->conn)) {

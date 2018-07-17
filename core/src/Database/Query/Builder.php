@@ -9,14 +9,23 @@ class Builder
     use Concerns\ConditionKeywords;
     use Concerns\Validations;
 
+    /**
+     * Raw SQL query (unprepared).
+     */
     private $rawQuery;
 
+    /**
+     * Prepared SQL query.
+     */
     private $preparedQuery;
 
+    /**
+     * Database table name of the query.
+     */
     private $table;
 
     /**
-     * Record all called verb
+     * Record all called verb.
      * 
      * @see Builder::composeCompleteQuery()
      */
@@ -34,7 +43,7 @@ class Builder
     ];
 
     /**
-     * Store all verb query informations
+     * Store all verb query information including its arguments and conjunction.
      */
     private $queryVerbs = [
         // Example structure
@@ -54,7 +63,10 @@ class Builder
     ];
 
     /**
-     * Get states of the instance, and its table
+     * Get states of the instance, and its table.
+     * 
+     * @api
+     * @param string $name Name of the state.
      */
     public function __get($name)
     {
@@ -78,7 +90,10 @@ class Builder
     }
 
     /**
-     * Get query structure of the instance
+     * Get information of query verbs of the instance.
+     * 
+     * @api
+     * @param string $verb Verb name e.g. select, insert, update, delete.
      */
     public function getQueryVerbs($verb)
     {
@@ -86,7 +101,10 @@ class Builder
     }
 
     /**
-     * Set database table to the instance. Must be called before other query method
+     * Set database table to the instance. Must be called before other query method.
+     * 
+     * @api
+     * @param string $tableName Name of the database table to includes in query.
      */
     public function table($tableName)
     {
@@ -97,11 +115,19 @@ class Builder
 
     // ============================== Query phrase addition methods ==========================
     /**
-     * Add verb to query structure
+     * Add verb to query verbs ($this->queryVerbs)
+     * 
+     * @param string $verb Query verb
+     * @param mixed $arguments Arguments of the verb, depends on what verb it is.
+     * @param array $nextVerbs Verb methods that are allowed to call next.
+     * @param array $prevVerbs Verb methods that must be called before this verb method.
+     * @param array $possibleConjunctions Query conjunction methods that are allowed for this verb method.
+     * 
+     * @return void
      */
     private function addVerb($verb, $arguments, $nextVerbs = [], $prevVerbs = [], $possibleConjunctions = [])
     {
-        // Validate verb
+        // Validate verb.
         if (! $this->verbIsValid($verb, $prevVerbs)) {
             throw new \Exception(
                 sprintf(
@@ -114,11 +140,13 @@ class Builder
             
         }
 
+        // Set builder' state.
         $this->state['possibleVerbs'] = $nextVerbs;
         $this->state['possibleConjunctions'] = $possibleConjunctions;
         $this->state['previousVerb'] = $verb;
         $this->calledVerbs[] = $verb;
 
+        // Define verb information structure.
         $structure = [
             'arguments' => $arguments,
             'conjunctions' => []
@@ -132,10 +160,18 @@ class Builder
     }
 
     /**
-     * Add conjunction to last called verb
+     * Add conjunction to last called verb.
+     * 
+     * @param string $conjunction Query conjunction method name.
+     * @param mixed $arguments Arguments of the conjunction.
+     * @param array $of Array of verbs which this conjunction belongs to.
+     * @param array $possibleConditions Query conditions that are allowed for this conjunction.
+     * 
+     * @return void
      */
     private function addConjunction($conjunction, $arguments, $of = [], $possibleConditions = [])
     {
+        // Validtaion.
         if (! $this->conjunctionIsValid($conjunction, $of)) {
             throw new \Exception(
                 sprintf(
@@ -148,6 +184,7 @@ class Builder
             
         }
 
+        // Update builder' state.
         $this->state['possibleConditions'] = $possibleConditions;
         $this->state['previousConjunction'] = $conjunction;
 
@@ -163,12 +200,17 @@ class Builder
     }
 
     /**
-     * Add condition to conjunction in last called verb
+     * Add condition to conjunction in last called verb.
+     * 
+     * @param string $type Type of condition i.e. and, or.
+     * @param mixed $arguments Arguments of the condition.
+     * @param string $of Name of conjunction method which this condition belongs to.
+     * 
+     * @return void
      */
-    private function addCondition($type, $arguments, $of)
+    private function addCondition($type, $arguments, string $of)
     {
-        // Check previous verb
-        // Check previous conjunction
+        // Validation.
         if (! $this->conditionIsValid($type, $of)) {
             throw new \Exception(
                 sprintf(
@@ -195,7 +237,11 @@ class Builder
 
     // ========================== Query composition methods ===============================
     /**
-     * Compose ready to query statement
+     * Compose ready to query statement.
+     * 
+     * @param bool $prepared Whether to prepare the query or not.
+     * 
+     * @return string Composed query.
      */
     private function composeCompleteQuery(bool $prepared = false)
     {
@@ -212,6 +258,15 @@ class Builder
         return implode(' ', $composedQuery);
     }
 
+    /**
+     * Compose all registered verbs.
+     * 
+     * @param string $verbName Name of the verb method.
+     * @param array $verbs Array of info structure of the verb.
+     * @param bool $prepared Whether to prepare the query or not.
+     * 
+     * @return string Composed verbs.
+     */
     private function composeAllVerbs($verbName, $verbs, bool $prepared = false)
     {
         $composedVerbs = [];
@@ -230,6 +285,15 @@ class Builder
         return implode(' ', $composedVerbs);
     }
 
+    /**
+     * Compose all registered verbs.
+     * 
+     * @param string $verbName Name of the verb method.
+     * @param array $verbs Array of info structure of the verb.
+     * @param bool $prepared Whether to prepare the query or not.
+     * 
+     * @return string Composed verbs.
+     */
     private function composeAllConjunctions($verb, bool $prepared = false)
     {
         if (empty($verb['conjunctions'])) {
