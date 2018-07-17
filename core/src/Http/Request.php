@@ -17,7 +17,10 @@ class Request
         $this->header = getallheaders();
         $this->method = $_SERVER['REQUEST_METHOD'];
         $this->uri = $_SERVER['REQUEST_URI'];
-        $this->data = $_GET + $_POST;
+        $this->get = $_GET;
+        $this->post = $_POST;
+        $this->files = $_FILES;
+        $this->session = empty($_SESSION) ? [] : $_SESSION;
         $this->cookie = $_COOKIE;
     }
 
@@ -26,6 +29,7 @@ class Request
         return $this->info[$name];
     }
 
+    // For middleware to modify it
     public function __set(string $name, $value)
     {
         $this->info[$name] = $value;

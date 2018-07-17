@@ -55,25 +55,30 @@ class Collection
     // ========================= Formatting methods ========================
     public function keys()
     {
-        return \array_keys($this->collection);
+        return array_keys($this->collection);
     }
 
     public function values()
     {
-        return \array_values($this->collection);
+        return array_values($this->collection);
+    }
+
+    public function toArray()
+    {
+        return $this->map(function ($item) {
+            return is_a($item, self::class) ? $item->all() : $item;
+        });
     }
 
     public function toJson()
     {
-        return \json_encode($this->collection);
+        return json_encode($this->toArray());
     }
 
     // ========================= Modification methods ========================
     public function push($data)
     {
-        // $data = (\is_array($data)) ? new self($data) : $data;
-        
-        \array_push($this->collection, $data);
+        array_push($this->collection, $data);
 
         return $this;
     }
@@ -86,14 +91,15 @@ class Collection
 
         $allArgs = func_get_args();
 
-        \array_shift($allArgs);
+        array_shift($allArgs);
 
         foreach ($allArgs as $arg) {
             $args[] = $arg;
         }
 
-        $this->collection = \call_user_func_array('\array_map', $args);
+        // $this->collection = call_user_func_array('array_map', $args);
 
-        return $this;
+        // return $this->collection;
+        return call_user_func_array('array_map', $args);
     }
 }

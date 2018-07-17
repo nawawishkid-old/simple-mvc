@@ -5,17 +5,17 @@ namespace Core\Router;
 use Core\Http\Request;
 use Core\Http\Response;
 use Core\Controller;
-// use Core\Input\Request;
-// use Core\Output\Response;
-// use Core\Output\View;
+use Core\Router\Middleware;
 
 class Router
 {
     private $request;
 
-    // private $response;
+    private $response;
 
-    private $registeredRoute = [];
+    private $registeredRoutes = [];
+
+    private $previousRegisteredMethod;
 
     private $notFoundCallback;
 
@@ -26,12 +26,13 @@ class Router
         'callback' => null
     ];
 
-    private $validMethod = [
+    private $validMethods = [
         'GET',
         'POST',
         'PUT',
         'DELETE',
-        'OPTION'
+        'PATCH',
+        'OPTIONS'
     ];
 
     public function __construct(Request $request, Response $response)
@@ -57,11 +58,70 @@ class Router
 
         if (empty($this->matchedRoute['route'])) {
             $this->executeCallback($this->notFoundCallback);
-            
-            return;
         }
 
-        $this->executeCallback();
+        $modifiedUri = $this->modifyRoute($uri);
+
+        if (! empty($this->getMiddlewares($request->method, $modifiedUri))) {
+            $this->executeMiddlewares($request->method, $modifiedUri);
+        }
+        
+        return $this->executeCallback();
+    }
+
+    private function executeMiddlewares($method, $route)
+    {
+        foreach ($this->getMiddlewares($method, $route) as $key => $middleware) {
+            if (is_array($middleware) && is_a($middleware, Middelware::class)) {
+                $middleware = new $middleware;
+
+                $this->executeCallback([$middleware, 'run']);
+            }
+
+            $this->executeCallback($middleware);
+        }
+    }
+
+    /**
+     * Get array of middlewares of given route
+     * 
+     * @param string $method HTTP request method for the middleware
+     * @param string $route Modified URI of the middleware
+     * 
+     * @return array
+     */
+    private function getMiddlewares($method, $route)
+    {
+        return $this->registeredRoutes[$method][$route]['middlewares'];
+    }
+
+    /**
+     * Add middleware to the previous registered route
+     * 
+     * @api
+     * @param callable|closure|string $middleware Name of middleware or function to apply.
+     */
+    public function middleware($middleware)
+    {
+        $this->throwTypeIsValid($middleware, [
+            'callable',
+            'array',
+            'string'
+        ]);
+
+        $routeKeys = array_keys($this->registeredRoutes[$this->previousRegisteredMethod]);
+        $prevRouteKey = end($routeKeys);
+        $prevRoute = end($this->registeredRoutes[$this->previousRegisteredMethod]);
+
+        if (empty($prevRoute['middlewares'])) {
+            $prevRoute['middlewares'] = [];
+        }
+
+        $prevRoute['middlewares'][] = $middleware;
+
+        $this->registeredRoutes[$this->previousRegisteredMethod][$prevRouteKey] = $prevRoute;
+
+        return $this;
     }
 
     /**
@@ -117,6 +177,16 @@ class Router
     /**
      * @api
      */
+    public function options(string $route, $callback)
+    {
+        $this->registerRoute('OPTIONS', $route, $callback);
+
+        return $this;
+    }
+
+    /**
+     * @api
+     */
     public function notFound($callback)
     {
         $this->notFoundCallback = $callback;
@@ -137,28 +207,31 @@ class Router
             
         }
 
-        if (empty($this->registeredRoute[$method])) {
-            $this->registeredRoute[$method] = [];
+        $this->previousRegisteredMethod = $method;
+
+        if (empty($this->registeredRoutes[$method])) {
+            $this->registeredRoutes[$method] = [];
         }
 
         $routeInfo = [
             'originalRoute' => $route,
-            'callback' => $callback
+            'callback' => $callback,
+            // 'middlewares' => []
         ];
         
-        $this->registeredRoute[$method][$this->modifyRoute($route)] = $routeInfo;
+        $this->registeredRoutes[$method][$this->modifyRoute($route)] = $routeInfo;
     }
 
     private function executeCallback($callback = null)
     {
-        if (\is_null($callback)) {
+        if (is_null($callback)) {
             $callback = $this->matchedRoute['callback'];
             $extraArguments = (object) $this->matchedRoute['arguments'];
         } else {
             $extraArguments = null;
         }
 
-        if (\is_null($callback)) {
+        if (is_null($callback)) {
             return;
         }
 
@@ -169,44 +242,11 @@ class Router
         ]);
 
         // Instantiate class if necessary.
-        if (\is_array($callback) && \is_a($callback[0], Controller::class)) {
+        if (is_array($callback) && is_a($callback[0], Controller::class)) {
             $callback[0] = new $callback[0];
         }
 
-        \call_user_func_array($callback, [$this->request, $this->response, $extraArguments]);
-    }
-
-    private function throwTypeIsValid($var, array $types)
-    {
-        if (! $this->typeIsValid($var, $types)) {
-            throw new \Exception("Error: Invalid argument types; Valid type(s) is/are " . implode(', ', $types) . "; " . gettype($var) . " given", 1);
-            
-        }
-
-        return true;
-    }
-
-    private function typeIsValid($var, array $types)
-    {
-        foreach ($types as $type) {
-            if (! \function_exists('is_' . $type)) {
-                throw new \Exception("Error: Unknown type, $type", 1);
-                
-            }
-
-            $result = \call_user_func_array('is_' . $type, [$var]);
-
-            if ($result) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private function methodIsValid(string $method)
-    {
-        return \in_array($method, $this->validMethod);
+        return call_user_func_array($callback, [$this->request, $this->response, $extraArguments]);
     }
 
     private function findMatchedRoute()
@@ -215,16 +255,16 @@ class Router
         $uri = $this->request->uri;
 
         // If no route registered
-        if (empty($this->registeredRoute[$method])) {
+        if (empty($this->registeredRoutes[$method])) {
             return;
         }
 
-        foreach ($this->registeredRoute[$method] as $route => $value) {
+        foreach ($this->registeredRoutes[$method] as $route => $value) {
             $matches = $this->matchRouteWithURI($route, $uri);
 
             if (! empty($matches)) {
                 unset($matches[0]);
-                $this->addMatchedRouteInfo($route, $method, \array_values($matches));
+                $this->addMatchedRouteInfo($route, $method, array_values($matches));
                 
                 return;
             }
@@ -235,9 +275,9 @@ class Router
     {
         $this->matchedRoute['route'] = $routeName;
         $this->matchedRoute['method'] = $method;
-        $this->matchedRoute['callback'] = $this->registeredRoute[$method][$routeName]['callback'];
+        $this->matchedRoute['callback'] = $this->registeredRoutes[$method][$routeName]['callback'];
 
-        $routeParameters = $this->findRouteParameters($this->registeredRoute[$method][$routeName]['originalRoute']);
+        $routeParameters = $this->findRouteParameters($this->registeredRoutes[$method][$routeName]['originalRoute']);
 
         foreach ($arguments as $index => $argument) {
             $this->matchedRoute['arguments'][$routeParameters[$index]] = $argument;
@@ -247,18 +287,18 @@ class Router
     private function matchRouteWithURI(string $route, string $uri)
     {
         $pattern = '@^' . $route . '/?$@';
-        \preg_match($pattern, $uri, $matches);
+        preg_match($pattern, $uri, $matches);
 
         return $matches;
     }
 
     private function findRouteParameters(string $route)
     {
-        \preg_match_all('@{(.*?)}@', $route, $matches);
+        preg_match_all('@{(.*?)}@', $route, $matches);
 
         unset($matches[0]);
 
-        $results = $this->unnestArrayRecursively(\array_values($matches));
+        $results = $this->unnestArrayRecursively(array_values($matches));
 
         return $results;
     }
@@ -268,8 +308,8 @@ class Router
         $newArray = [];
 
         foreach ($array as $key => $item) {
-            if (\gettype($item) === 'array') {
-                $newArray = \array_merge($newArray, $this->unnestArrayRecursively($item));
+            if (gettype($item) === 'array') {
+                $newArray = array_merge($newArray, $this->unnestArrayRecursively($item));
                 continue;
             }
 
@@ -286,7 +326,7 @@ class Router
 
     private function addPrefixSlash(string $string)
     {
-        if (\mb_substr($string, 0, 1) !== '/') {
+        if (mb_substr($string, 0, 1) !== '/') {
             $string = '/' . $string;
         }
 
@@ -297,8 +337,41 @@ class Router
     {
         $modifier = $required ? '+' : '*';
 
-        $result = \preg_replace('/{.*?}/', '(\w' . $modifier . ')', $route);
+        $result = preg_replace('/{.*?}/', '(\w' . $modifier . ')', $route);
 
         return $result;
+    }
+
+    private function throwTypeIsValid($var, array $types)
+    {
+        if (! $this->typeIsValid($var, $types)) {
+            throw new \Exception("Error: Invalid argument types; Valid type(s) is/are " . implode(', ', $types) . "; " . gettype($var) . " given", 1);
+            
+        }
+
+        return true;
+    }
+
+    private function typeIsValid($var, array $types)
+    {
+        foreach ($types as $type) {
+            if (! function_exists('is_' . $type)) {
+                throw new \Exception("Error: Unknown type, $type", 1);
+                
+            }
+
+            $result = call_user_func_array('is_' . $type, [$var]);
+
+            if ($result) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function methodIsValid(string $method)
+    {
+        return in_array($method, $this->validMethods);
     }
 }

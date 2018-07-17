@@ -7,20 +7,22 @@ use Core\Router\Router;
 class Route
 {
     private static $router;
+
+    private static $view;
     
     public static function __callStatic(string $methodName, $arguments)
     {
         return \call_user_func_array([static::$router, $methodName], $arguments);
     }
 
-    public static function initial(Router &$router)
+    public static function initial(Router $router)
     {
         static::$router = $router;
     }
 
     public static function resolve()
     {
-        static::$router->resolve();
+        return static::$router->resolve();
     }
 
     // Just to make __callStatic works

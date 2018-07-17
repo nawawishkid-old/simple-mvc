@@ -7,27 +7,49 @@ use App\Model\PostMeta as Model;
 use Core\Database\Connection;
 use Core\Database\Controller as DatabaseController;
 use Core\Database\Query\Builder;
+use Core\View\View;
 
 class PostMeta extends Controller
 {
     public function index($request, $response)
     {
-        // var_dump($response);
         $conn = new Connection();
         $ctrl = new DatabaseController($conn);
-        $qb = new Builder();
+        // $qb = new Builder();
 
         $ctrl->table('wp_postmeta')
              ->select('meta_id', 'meta_value')
              ->where('meta_id', '>', 300)
              ->andWhere('meta_id', '>', 600);
 
-        var_dump($ctrl->get());
         $rows = $ctrl->fetch();
 
-        echo '<pre>';
-        var_dump($rows);
-        echo '</pre>';
-        // echo self::class . "::index()!";
+        return $rows;
+    }
+
+    public function user($request, $response, $arguments)
+    {
+        $conn = new Connection();
+        $ctrl = new DatabaseController($conn);
+
+        $ctrl->table('wp_users')
+                ->select('*')
+                ->where('user_login', '=', $arguments->username);
+
+        // $result = (new View)->toJson($ctrl->fetch());
+        $result = $ctrl->fetch()->toJson();
+
+        return $response->data($result);
+    }
+
+    public function form($request, $response)
+    {
+        $view = new View();
+        return $view->get('form');
+    }
+
+    public function upload($request, $response)
+    {
+        return (new View())->get('upload', $request);
     }
 }
