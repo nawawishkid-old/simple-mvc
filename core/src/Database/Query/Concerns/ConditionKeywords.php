@@ -4,18 +4,32 @@ namespace Core\Database\Query\Concerns;
 
 trait ConditionKeywords
 {
-    private $conditionalOperators = [];
+    // private $conditionalOperators = [];
 
+    /**
+     * Add SQL 'AND' condition to 'WHERE' conjunction of $this->queryVerbs[$verb].
+     * 
+     * @param string $column Column name.
+     * @param string $operator SQL comparable operator.
+     * @param mixed $value Value of the given column.
+     * 
+     * @return $this
+     */
     public function andWhere(string $column, string $operator, $value)
     {
         $this->addCondition('and', func_get_args(), 'where');
+
+        return $this;
     }
 
-    public function orWhere(string $column, string $operator, $value)
-    {
-        $this->addCondition('or', func_get_args(), 'where');
-    }
-
+    /**
+     * Compose SQL 'AND' statement for 'WHERE' conjunction.
+     * 
+     * @param array $arguments Array of 'AND' arguments
+     * @param bool $prepared Whether to prepare the query or not.
+     * 
+     * @return string SQL query.
+     */
     public function composeAndCondition($arguments, bool $prepared = false) 
     {
         $format = " AND %s %s %s";
@@ -25,6 +39,28 @@ trait ConditionKeywords
         return sprintf($format, $arguments[0], $arguments[1], $arguments[2]);
     }
 
+    /**
+     * Add SQL 'OR' condition to 'WHERE' conjunction of $this->queryVerbs[$verb].
+     * 
+     * @param string $column Column name.
+     * @param string $operator SQL comparable operator.
+     * @param mixed $value Value of the given column.
+     * 
+     * @return $this
+     */
+    public function orWhere(string $column, string $operator, $value)
+    {
+        $this->addCondition('or', func_get_args(), 'where');
+    }
+
+    /**
+     * Compose SQL 'OR' statement for 'WHERE' conjunction.
+     * 
+     * @param array $arguments Array of 'OR' arguments
+     * @param bool $prepared Whether to prepare the query or not.
+     * 
+     * @return string SQL query.
+     */
     public function composeOrCondition($arguments, bool $prepared = false) 
     {
         $format = " OR %s %s %s";
@@ -33,24 +69,4 @@ trait ConditionKeywords
         
         return sprintf($format, $arguments[0], $arguments[1], $arguments[2]);
     }
-
-    // public function insert($tableName) {}
-    // public function update($tableName) {}
-    // public function delete($tableName) {}
-    // public function join($tableName) {}
-    // public function innerJoin($tableName) {}
-    // public function leftJoin($tableName) {}
-    // public function rightJoin($tableName) {}
-    // public function union($tableName) {}
-    // public function unionAll($tableName) {}
-
-    // public function composeInsertStatement($data) {}
-    // public function composeUpdateStatement($data) {}
-    // public function composeDeleteStatement($data) {}
-    // public function composeJoinStatement($data) {}
-    // public function composeInnerJoinStatement($data) {}
-    // public function composeLeftJoinStatement($data) {}
-    // public function composeRightJoinStatement($data) {}
-    // public function composeUnionStatement($data) {}
-    // public function composeUnionAllStatement($data) {}
 }

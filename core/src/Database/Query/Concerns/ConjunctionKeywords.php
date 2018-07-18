@@ -4,8 +4,17 @@ namespace Core\Database\Query\Concerns;
 
 trait ConjunctionKeywords
 {
-    private $conditionalOperators = [];
+    // private $conditionalOperators = [];
 
+    /**
+     * Add SQL 'WHERE' conjunction to $this->queryVerbs[$verb].
+     * 
+     * @param string $column Column name.
+     * @param string $operator SQL comparable operator.
+     * @param mixed $value Value of the given column.
+     * 
+     * @return $this
+     */
     public function where(string $column, string $operator, $value)
     {
         $this->addConjunction(
@@ -18,7 +27,15 @@ trait ConjunctionKeywords
         return $this;
     }
 
-    private function composeWhereConjunction($arguments, bool $prepared = false)
+    /**
+     * Compose SQL ' WHERE $column $operator $value'
+     * 
+     * @param array $arguments Array of 'WHERE' arguments
+     * @param bool $prepared Whether to prepare the query or not.
+     * 
+     * @return string SQL query.
+     */
+    private function composeWhereConjunction(array $arguments, bool $prepared = false)
     {
         $format = " WHERE %s %s %s"; // . implode(' ', $arguments);
 

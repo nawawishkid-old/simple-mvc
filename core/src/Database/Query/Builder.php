@@ -10,29 +10,29 @@ class Builder
     use Concerns\Validations;
 
     /**
-     * Raw SQL query (unprepared).
+     * @property string Raw SQL query (unprepared).
      */
     private $rawQuery;
 
     /**
-     * Prepared SQL query.
+     * @property string Prepared SQL query.
      */
     private $preparedQuery;
 
     /**
-     * Database table name of the query.
+     * @property string Database table name of the query.
      */
     private $table;
 
     /**
-     * Record all called verb.
+     * @property array Record all called verb method name.
      * 
      * @see Builder::composeCompleteQuery()
      */
     private $calledVerbs = [];
 
     /**
-     * Records state of the instance.
+     * @property array State of the instance.
      */
     private $state = [
         'previousVerb' => null,
@@ -43,7 +43,7 @@ class Builder
     ];
 
     /**
-     * Store all verb query information including its arguments and conjunction.
+     * @property array Store all verb query information including its arguments and conjunction.
      */
     private $queryVerbs = [
         // Example structure
@@ -67,6 +67,8 @@ class Builder
      * 
      * @api
      * @param string $name Name of the state.
+     * 
+     * @return mixed $this->state[$name]
      */
     public function __get($name)
     {
@@ -94,6 +96,8 @@ class Builder
      * 
      * @api
      * @param string $verb Verb name e.g. select, insert, update, delete.
+     * 
+     * @return array Query verb information structure array.
      */
     public function getQueryVerbs($verb)
     {
@@ -105,6 +109,8 @@ class Builder
      * 
      * @api
      * @param string $tableName Name of the database table to includes in query.
+     * 
+     * @return $this
      */
     public function table($tableName)
     {
@@ -286,13 +292,12 @@ class Builder
     }
 
     /**
-     * Compose all registered verbs.
+     * Compose all registered conjunctions of the given verb.
      * 
-     * @param string $verbName Name of the verb method.
-     * @param array $verbs Array of info structure of the verb.
+     * @param array $verb Verb information array.
      * @param bool $prepared Whether to prepare the query or not.
      * 
-     * @return string Composed verbs.
+     * @return string Composed conjunction.
      */
     private function composeAllConjunctions($verb, bool $prepared = false)
     {
@@ -314,6 +319,14 @@ class Builder
         return implode(' ', $composedConjunctions);
     }
 
+    /**
+     * Compose all registered conditions of the given conjunction.
+     * 
+     * @param array $conditions Array of conditions.
+     * @param bool $prepared Whether to prepare the query or not.
+     * 
+     * @return string Composed conjunction.
+     */
     private function composeAllConditions($conditions, bool $prepared = false)
     {
         if (count($conditions) === 1) {
@@ -338,6 +351,11 @@ class Builder
     }
 
     // ========================== Get query methods ==========================
+    /**
+     * Return SQL query without preparation.
+     * 
+     * @return string $this->rawQuery SQL query.
+     */
     public function get()
     {
         if (empty($this->rawQuery)) {
@@ -346,7 +364,11 @@ class Builder
 
         return $this->rawQuery;
     }
-
+    /**
+     * Return prepared SQL query.
+     * 
+     * @return string $this->preparedQuery SQL query.
+     */
     public function getPrepared()
     {
         if (empty($this->preparedQuery)) {
@@ -356,223 +378,23 @@ class Builder
         return $this->preparedQuery;
     }
 
-    // private function composeSelectStatement($data)
-    // {
-    //     $format = "SELECT %s FROM %s" . PHP_EOL;
-
-    //     $selectInput = $data['input'][0];
-    //     $fromInputs = $data['clauses']['from'];
-    //     $whereInputs = $data['clauses']['where'];
-    // }
-
-    // private function composeWhereClause($data)
-    // {
-    //     $format = "WHERE %s %s %s" . PHP_EOL;
-
-    //     $this->composeStatement($format, implode(' ', $data));
-    // }
-
-    // private function composeAndWhereClause($data)
-    // {
-    //     $format = "AND %s %s %s" . PHP_EOL;
-
-    //     $this->composeStatement($format, implode(' ', $data));
-    // }
-
-    // private function composeOrWhereClause($data)
-    // {
-    //     $format = "OR %s %s %s" . PHP_EOL;
-
-    //     $this->composeStatement($format, implode(' ', $data));
-    // }
-
-    // public function __construct()
-    // {
-
-    // }
-
-    /**
-     * Return prepared statement
-     */
-    // public function getPrepared()
-    // {
-    //     return $this->preparedStatement;
-    // }
-
-    // /**
-    //  * Return statement
-    //  */
-    // public function get()
-    // {
-    //     return $this->rawStatement;
-    // }
-
     /**
      * Reset instance
+     * 
+     * @return void
      */
     public function clear()
     {
-        $this->statement = [];
-        $this->rawStatement = null;
-        $this->preparedStatement = null;
-        $this->previousKeyword = null;
-        $this->possibleKeywords = [];
+        $this->rawQuery = null;
+        $this->preparedQuery = null;
+        $this->queryVerbs = [];
+        $this->calledVerbs = [];
+        $this->state = [
+            'previousVerb' => null,
+            'possibleVerbs' => [],
+            'previousConjunctions' => null,
+            'possibleConjunctions' => [],
+            'possibleConditions' => []
+        ];
     }
-
-    // public function select($input)
-    // {
-    //     $data = [
-    //         'input' => $input,
-    //         'clauses' => [
-    //             'from',
-    //             'where'
-    //         ]
-    //     ];
-    //     // $clause = "SELECT $input";
-
-    //     $this->tryAppendingKeyword('select', $data);
-    // }
-
-    // public function insert(array $columnValues)
-    // {
-    //     $clause = "INSERT INTO";
-    // }
-
-    // public function into(string $tableName)
-    // {
-    //     $this->tryAppendingKeyword('into');
-    // }
-
-    // private function composeInsertStatement()
-    // {
-    //     $table = $this->getKeywordDetail('into')['input'];
-    //     $columnValues = $this->getKeywordDetail('insert')['input'];
-
-    //     $columns = implode(', ', array_keys($columnValues));
-    //     $valuesArray = array_values($columnValues);
-    //     $values = implode(', ', $valuesArray);
-    //     $preparedValues = implode(', ', $this->prepareArrayValues($valuesArray));
-
-    //     $format = "INSERT INTO %s (%s) VALUES (%s);";
-
-    //     $rawStatement = $this->composeStatement($format, [
-    //         $table,
-    //         $columns,
-    //         $values
-    //     ]);
-
-    //     $preparedStatement = $this->composeStatement($format, [
-    //         $table,
-    //         $columns,
-    //         $preparedValues
-    //     ]);
-        
-    //     $this->setRawStatement($rawStatement);
-    //     $this->setPreparedStatement($preparedStatment);
-    // }
-
-    // private function getKeywordDetail($keyword)
-    // {
-    //     return $this->statement[$keyword];
-    // }
-
-    // private function setRawStatement(string $composedStatement)
-    // {
-    //     $this->rawStatement = $composedStatement;
-    // }
-
-    // private function setPreparedStatement(string $composedStatement)
-    // {
-    //     $this->preparedStatement = $composedStatement;
-    // }
-
-    // private function composeStatement(string $format, $inputs)
-    // {
-    //     return sprintf($format, $inputs);
-    // }
-
-    // private function prepareArrayValues(array $toBePrepared)
-    // {
-    //     return array_fill(0, count($toBePrepared), '?');
-    // }
-
-    /**
-     * 
-     * 
-     * @param string $keyword
-     * @param array $previousKeywords Keywords to check if $this->previousKeyword is matched one of them.
-     * @param array $nextKeywords Keywords which will be used to set the next possible keywords.
-     */
-    // private function tryAppendingKeyword(
-    //     string $keyword, 
-    //     // string $clause, 
-    //     $input = null, 
-    //     array $previousKeywords = null, 
-    //     array $nextKeywords = null
-    // )
-    // {
-    //     if (! $this->keywordIsValid($previousKeywords)) {
-    //         throw new \Exception("Error: Given keyword is not allowed, $keyword", 1);
-            
-    //     }
-
-    //     $this->appendKeyword($keyword, $clause, $input);
-    //     $this->setPreviousKeyword($keyword);
-    //     $this->setPossibleKeywords($nextKeywords);
-    // }
-
-    // /**
-    //  * 
-    //  */
-    // private function appendKeyword(string $keyword, $input = null)
-    // {
-    //     $this->statement[] = [
-    //         'keyword' => $keyword,
-    //         // 'clause' => $clause,
-    //         'input' => $input
-    //     ];
-    // }
-
-    // /**
-    //  * 
-    //  */
-    // private function keywordIsValid($keyword, $previousKeywords)
-    // {
-    //     return $this->keywordIsPossible($keyword) && $this->previousKeywordIsMatched($previousKeywords);
-    // }
-
-    // /**
-    //  * 
-    //  */
-    // private function keywordIsPossible(string $keyword)
-    // {
-    //     return empty($this->possibleKeywords) || in_array($keyword, $this->possibleKeywords);
-    // }
-
-    // /**
-    //  * 
-    //  */
-    // private function previousKeywordIsMatched($previousKeywords)
-    // {
-
-    //     return is_null($previousKeywords) || in_array($this->previousKeyword, $previousKeywords);
-    // }
-
-    // /**
-    //  * 
-    //  */
-    // private function setPreviousKeyword($keyword)
-    // {
-    //     $this->previousKeyword = $keyword;
-    // }
-
-    // /**
-    //  * 
-    //  */
-    // private function setPossibleKeywords($keywords)
-    // {
-    //     $keywords = is_array($keywords) ? $keywords : func_get_args();
-
-    //     $this->possibleKeywords = $keywords;
-    // }
 }

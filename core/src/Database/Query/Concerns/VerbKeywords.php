@@ -4,6 +4,13 @@ namespace Core\Database\Query\Concerns;
 
 trait VerbKeywords
 {
+    /**
+     * Add SQL 'SELECT' verb to $this->queryVerbs
+     * 
+     * @param array|string $columns Columns to select from database.
+     * 
+     * @return $this
+     */
     public function select($columns)
     {
         $columns = is_array($columns) ? $columns : func_get_args();
@@ -22,6 +29,18 @@ trait VerbKeywords
         return $this;
     }
 
+    /**
+     * Compose SQL 'SELECT $columns FROM $this->table'
+     * 
+     * @return string SQL query.
+     */
+    public function composeSelectVerb($arguments, bool $prepared = false) 
+    {
+        $format = "SELECT %s FROM %s";
+
+        return sprintf($format, implode(', ', $arguments), $this->table);
+    }
+
     // public function insert($tableName) {}
     // public function update($tableName) {}
     // public function delete($tableName) {}
@@ -31,13 +50,6 @@ trait VerbKeywords
     // public function rightJoin($tableName) {}
     // public function union($tableName) {}
     // public function unionAll($tableName) {}
-
-    public function composeSelectVerb($arguments, bool $prepared = false) 
-    {
-        $format = "SELECT %s FROM %s";
-
-        return sprintf($format, implode(', ', $arguments), $this->table);
-    }
 
     // public function composeInsertVerb($data) {}
     // public function composeUpdateVerb($data) {}
