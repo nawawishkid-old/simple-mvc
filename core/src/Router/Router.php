@@ -9,23 +9,40 @@ use Core\Router\Middleware;
 
 class Router
 {
+    /**
+     * @property Request instance of Core\Http\Request.
+     */
     private $request;
-
+    /**
+     * @property Response instance of Core\Http\Response.
+     */
     private $response;
 
+    /**
+     * @property array Array of registered URL.
+     */
     private $registeredRoutes = [];
 
+    /**
+     * @property string Previously registered HTTP method.
+     */
     private $previousRegisteredMethod;
-
+    /**
+     * @property callable|closure Callback for unregistered route/URL.
+     */
     private $notFoundCallback;
-
+    /**
+     * @property array Array of information about matched route that matched with current request URL.
+     */
     private $matchedRoute = [
         'route' => null,
         'method' => null,
         'arguments' => [],
         'callback' => null
     ];
-
+    /**
+     * @property array Array of valid HTTP methods.
+     */
     private $validMethods = [
         'GET',
         'POST',
@@ -35,6 +52,16 @@ class Router
         'OPTIONS'
     ];
 
+    /**
+     * Set $this->request and $this->response.
+     * 
+     * @api
+     * 
+     * @param Request $request Instance of Request.
+     * @param Response $request Instance of Response.
+     * 
+     * @return void
+     */
     public function __construct(Request $request, Response $response)
     {
         $this->request = $request;
@@ -42,7 +69,18 @@ class Router
     }
 
     /**
+     * Resolve current request URL to be matched with registered route/URL.
+     * 
      * @api
+     * 
+     * @uses Router::addPrefixSlash()
+     * @uses Router::methodIsValid()
+     * @uses Router::findMatchedRoute()
+     * @uses Router::executeCallback()
+     * @uses Router::urlToRegex()
+     * @uses Router::executeMiddlewares()
+     * 
+     * @return mixed Result of registered route's callback.
      */
     public function resolve()
     {
@@ -60,7 +98,7 @@ class Router
             $this->executeCallback($this->notFoundCallback);
         }
 
-        $modifiedUri = $this->modifyRoute($uri);
+        $modifiedUri = $this->urlToRegex($uri);
 
         if (! empty($this->getMiddlewares($request->method, $modifiedUri))) {
             $middleware = $this->executeMiddlewares($request->method, $modifiedUri);
@@ -73,6 +111,17 @@ class Router
         return $this->executeCallback();
     }
 
+    /**
+     * Execute middleware callback for the given HTTP method and route/URL.
+     * 
+     * @uses Router::getMiddlewares()
+     * @uses Router::executeCallback()
+     * 
+     * @param string $method HTTP method.
+     * @param string $route Route/URL of the registered route/URL.
+     * 
+     * @return bool True if the request passed the middleware, otherwise false.
+     */
     private function executeMiddlewares($method, $route)
     {
         foreach ($this->getMiddlewares($method, $route) as $key => $middleware) {
@@ -93,12 +142,12 @@ class Router
     }
 
     /**
-     * Get array of middlewares of given route
+     * Get array of middlewares of given route.
      * 
-     * @param string $method HTTP request method for the middleware
-     * @param string $route Modified URI of the middleware
+     * @param string $method HTTP request method for the middleware.
+     * @param string $route Modified URI of the middleware.
      * 
-     * @return array
+     * @return mixed Array of middlewares callback or null if there is no middleware for the given route\URL.
      */
     private function getMiddlewares($method, $route)
     {
@@ -112,10 +161,15 @@ class Router
     }
 
     /**
-     * Add middleware to the previous registered route
+     * Add middleware to the previously registered route.
      * 
      * @api
-     * @param callable|closure|string $middleware Name of middleware or function to apply.
+     * 
+     * @uses Router::throwTypeIsValid()
+     * 
+     * @param callable|closure|string $middleware Name of middleware or callback to be applied.
+     * 
+     * @return $this
      */
     public function middleware($middleware)
     {
@@ -141,7 +195,14 @@ class Router
     }
 
     /**
-     * @api
+     * Register route/URL for HTTP 'GET' method.
+     * 
+     * @uses Router::registerRoute()
+     * 
+     * @param string $route Route/URL to be registered.
+     * @param callable|closure $callback Callback to be applied when the request URL is matched.
+     * 
+     * @return $this
      */
     public function get(string $route, $callback)
     {
@@ -151,7 +212,14 @@ class Router
     }
 
     /**
-     * @api
+     * Register route/URL for HTTP 'POST' method.
+     * 
+     * @uses Router::registerRoute()
+     * 
+     * @param string $route Route/URL to be registered.
+     * @param callable|closure $callback Callback to be applied when the request URL is matched.
+     * 
+     * @return $this
      */
     public function post(string $route, $callback)
     {
@@ -161,7 +229,16 @@ class Router
     }
 
     /**
+     * Register route/URL for HTTP 'PUT' method.
+     * 
      * @api
+     * 
+     * @uses Router::registerRoute()
+     * 
+     * @param string $route Route/URL to be registered.
+     * @param callable|closure $callback Callback to be applied when the request URL is matched.
+     * 
+     * @return $this
      */
     public function put(string $route, $callback)
     {
@@ -171,7 +248,16 @@ class Router
     }
 
     /**
+     * Register route/URL for HTTP 'DELETE' method.
+     * 
      * @api
+     * 
+     * @uses Router::registerRoute()
+     * 
+     * @param string $route Route/URL to be registered.
+     * @param callable|closure $callback Callback to be applied when the request URL is matched.
+     * 
+     * @return $this
      */
     public function delete(string $route, $callback)
     {
@@ -181,7 +267,16 @@ class Router
     }
 
     /**
+     * Register route/URL for HTTP 'PATCH' method.
+     * 
      * @api
+     * 
+     * @uses Router::registerRoute()
+     * 
+     * @param string $route Route/URL to be registered.
+     * @param callable|closure $callback Callback to be applied when the request URL is matched.
+     * 
+     * @return $this
      */
     public function patch(string $route, $callback)
     {
@@ -191,7 +286,16 @@ class Router
     }
 
     /**
+     * Register route/URL for HTTP 'OPTIONS' method.
+     * 
      * @api
+     * 
+     * @uses Router::registerRoute()
+     * 
+     * @param string $route Route/URL to be registered.
+     * @param callable|closure $callback Callback to be applied when the request URL is matched.
+     * 
+     * @return $this
      */
     public function options(string $route, $callback)
     {
@@ -201,7 +305,13 @@ class Router
     }
 
     /**
+     * Add given callback to $this->notFoundCallback. Call this callback when there is no matched route/URL.
+     * 
      * @api
+     * 
+     * @param callable|closure $callback Callback to be called when there is no matched route.
+     * 
+     * @return $this
      */
     public function notFound($callback)
     {
@@ -210,6 +320,21 @@ class Router
         return $this;
     }
 
+    /**
+     * Register route/URL for given HTTP method.
+     * 
+     * @api
+     * 
+     * @uses Router::throwTypeIsValid()
+     * @uses Router::methodIsValid()
+     * @uses Router::urlToRegex()
+     * 
+     * @param string $method HTTP method.
+     * @param string $route Route/URL to be registered.
+     * @param callable|closure $callback Callback to be applied when the request URL is matched.
+     * 
+     * @return void
+     */
     private function registerRoute(string $method, string $route, $callback)
     {
         $this->throwTypeIsValid($callback, [
@@ -231,13 +356,20 @@ class Router
 
         $routeInfo = [
             'originalRoute' => $route,
-            'callback' => $callback,
-            // 'middlewares' => []
+            'callback' => $callback
         ];
         
-        $this->registeredRoutes[$method][$this->modifyRoute($route)] = $routeInfo;
+        $this->registeredRoutes[$method][$this->urlToRegex($route)] = $routeInfo;
     }
 
+    /**
+     * Execute callback of the matched route/URL ($this->matchedRoute).
+     * 
+     * @uses Router::throwTypeIsValid()
+     * @uses Controller::class
+     * 
+     * @return mixed Result of matched route's callback.
+     */
     private function executeCallback($callback = null)
     {
         if (is_null($callback)) {
@@ -265,6 +397,14 @@ class Router
         return call_user_func_array($callback, [$this->request, $this->response, $extraArguments]);
     }
 
+    /**
+     * Find registered route by using HTTP Request URI.
+     * 
+     * @uses Route::matchRouteWithURI()
+     * @uses Route::addMatchedRouteInfo()
+     * 
+     * @return void
+     */
     private function findMatchedRoute()
     {
         $method = $this->request->method;
@@ -287,19 +427,38 @@ class Router
         }
     }
 
-    private function addMatchedRouteInfo(string $routeName, string $method, array $arguments)
+    /**
+     * Add matched route information from given arguments to $this->matchedRoute.
+     * 
+     * @uses Route::findRouteParameters
+     * 
+     * @param string $route Route/URI that matched with the current HTTP Request URI.
+     * @param string $method HTTP method.
+     * @param array $arguments Array of HTTP Request URI arguments.
+     * 
+     * @return void
+     */
+    private function addMatchedRouteInfo(string $route, string $method, array $arguments)
     {
-        $this->matchedRoute['route'] = $routeName;
+        $this->matchedRoute['route'] = $route;
         $this->matchedRoute['method'] = $method;
-        $this->matchedRoute['callback'] = $this->registeredRoutes[$method][$routeName]['callback'];
+        $this->matchedRoute['callback'] = $this->registeredRoutes[$method][$route]['callback'];
 
-        $routeParameters = $this->findRouteParameters($this->registeredRoutes[$method][$routeName]['originalRoute']);
+        $routeParameters = $this->findRouteParameters($this->registeredRoutes[$method][$route]['originalRoute']);
 
         foreach ($arguments as $index => $argument) {
             $this->matchedRoute['arguments'][$routeParameters[$index]] = $argument;
         }
     }
 
+    /**
+     * Match given route with given HTTP Request URI using preg_match().
+     * 
+     * @param string $route Route to be matched with Request URI.
+     * @param string $uri URI of HTTP Request.
+     * 
+     * @return array Matched route in array.
+     */
     private function matchRouteWithURI(string $route, string $uri)
     {
         $pattern = '@^' . $route . '/?$@';
@@ -308,6 +467,15 @@ class Router
         return $matches;
     }
 
+    /**
+     * Check whether given route has placeholder for parameter, then extract the parameter accordingly.
+     * 
+     * @uses Route::unnestArrayRecursively()
+     * 
+     * @param string $route Route/URL to be searched for parameter.
+     * 
+     * @return array Array of parameters.
+     */
     private function findRouteParameters(string $route)
     {
         preg_match_all('@{(.*?)}@', $route, $matches);
@@ -319,6 +487,13 @@ class Router
         return $results;
     }
 
+    /**
+     * Unnest given array recursively.
+     * 
+     * @param array Array to be unnested.
+     * 
+     * @return array Unnested array.
+     */
     private function unnestArrayRecursively(array $array)
     {
         $newArray = [];
@@ -335,11 +510,29 @@ class Router
         return $newArray;
     }
 
-    private function modifyRoute(string $route)
+    // ============================= Given-route modification =============================
+    /**
+     * Add prefix slash, to given URL, then convert it to regex pattern.
+     * 
+     * @uses Router::addPrefixSlash()
+     * @uses Router::convertRouteToRegexPattern()
+     * 
+     * @param string $route Route/URL to be converted.
+     * 
+     * @return string RegExp string.
+     */
+    private function urlToRegex(string $route)
     {
         return $this->convertRouteToRegexPattern($this->addPrefixSlash($route));
     }
 
+    /**
+     * Add prefix slash to the given string.
+     * 
+     * @param string $string String to be prefixed with slash '/'.
+     * 
+     * @return string Prefixed string.
+     */
     private function addPrefixSlash(string $string)
     {
         if (mb_substr($string, 0, 1) !== '/') {
@@ -349,6 +542,14 @@ class Router
         return $string;
     }
 
+    /**
+     * Convert given route to pre-defined Regular Expression pattern.
+     * 
+     * @param string $route Route/URL to be converted.
+     * @param bool $required Tell whether given route's parameter is required or not.
+     * 
+     * @return string Regular Expression pattern.
+     */
     private function convertRouteToRegexPattern(string $route, bool $required = true)
     {
         $modifier = $required ? '+' : '*';
@@ -358,6 +559,17 @@ class Router
         return $result;
     }
 
+    // ============================== Validations ==============================
+    /**
+     * Throw an error if the type of given data is not one of given data-types array.
+     * 
+     * @uses Router::typeIsValid()
+     * 
+     * @param mixed $var Any data to be checked.
+     * @param array $types Array of data types.
+     * 
+     * @return bool True
+     */
     private function throwTypeIsValid($var, array $types)
     {
         if (! $this->typeIsValid($var, $types)) {
@@ -368,6 +580,14 @@ class Router
         return true;
     }
 
+    /**
+     * Check whether the type of given data is one of given data-type array.
+     * 
+     * @param mixed $var Any data to be checked.
+     * @param array $types Array of data types.
+     * 
+     * @return bool
+     */
     private function typeIsValid($var, array $types)
     {
         foreach ($types as $type) {
@@ -386,6 +606,13 @@ class Router
         return false;
     }
 
+    /**
+     * Check whether given method is a valid HTTP method.
+     * 
+     * @param string $method HTTP method.
+     * 
+     * @return bool
+     */
     private function methodIsValid(string $method)
     {
         return in_array($method, $this->validMethods);

@@ -4,24 +4,38 @@ namespace Core\Http;
 
 class Response
 {
+    /**
+     * @property array Array contains HTTP status code and its description.
+     */
     private $status = [
         'code' => 200,
-        'string' => 'OK'
+        'description' => 'OK'
     ];
 
+    /**
+     * @property int|float Version of HTTP protocal.
+     */
     private $version = 1.1;
 
+    /**
+     * @property array Array of HTTP header.
+     */
     private $header = [];
 
+    /**
+     * @property mixed Data to be sent back to the client.
+     */
     private $data;
 
-    private $isRedirected = false;
-
-    public function __construct()
-    {
-        // $this->sessions = $sessions;
-    }
-
+    /**
+     * Set data to be sent back to the client.
+     * 
+     * @api
+     * 
+     * @param mixed $data Data to be sent back to the client.
+     * 
+     * @return $this
+     */
     public function data($data)
     {
         $this->data = $data;
@@ -29,6 +43,16 @@ class Response
         return $this;
     }
 
+    /**
+     * Set HTTP Header.
+     * 
+     * @api
+     * 
+     * @param string $key HTTP Header key.
+     * @param mixed $value HTTP Header value.
+     * 
+     * @return $this
+     */
     public function header(string $key, $value)
     {
         $this->header[$key] = $value;
@@ -36,44 +60,66 @@ class Response
         return $this;
     }
 
-    public function status(int $code, string $string = null)
+    /**
+     * Set HTTP Response status.
+     * 
+     * @api
+     * 
+     * @param int $code HTTP Response status code.
+     * @param string $description HTTP Response status description.
+     * 
+     * @return $this
+     */
+    public function status(int $code, string $description = null)
     {
         $this->status['code'] = $code;
-        $this->status['string'] = $string;
+        $this->status['description'] = $description;
 
         return $this;
     }
 
-    public function version(float $version)
+    /**
+     * Set version of HTTP.
+     * 
+     * @api
+     * 
+     * @param int|float $version Version of HTTP protocal i.e. 1.1, 2.
+     * 
+     * @return $this
+     */
+    public function version(numeric $version)
     {
         $this->version = $version;
 
         return $this;
     }
 
+    /**
+     * Redirect by setting HTTP Response header.
+     * 
+     * @api
+     * 
+     * @param string $route URL to redirect to.
+     * 
+     * @return void
+     */
     public function redirect($route)
     {
-        // var_dump($_SERVER['SERVER_NAME']);
-        // var_dump($_SERVER['SERVER_PORT']);
-        $url = 'http://' . $_SERVER['SERVER_NAME'] . ':' . $_SERVER['SERVER_PORT'] . '/' . $route;
-        // $this->header('Location', $url);
-        // $this->isRedirected = true;
-        header('Location: ' . $url);
+        // $url = 'http://' . $_SERVER['SERVER_NAME'] . ':' . $_SERVER['SERVER_PORT'] . '/' . $route;
+        header('Location: ' . $route);
         exit();
     }
 
-    // public function session($key, $value)
-    // {
-    //     if ()
-    // }
-
+    /**
+     * Echo or print_r the $this->data based on the data type.
+     * 
+     * @api
+     * 
+     * @return void
+     */
     public function emit()
     {
         header($this->getComposedHTTPHeader());
-
-        if ($this->isRedirected) {
-            exit();
-        }
 
         $type = gettype($this->data);
 
@@ -95,13 +141,17 @@ class Response
         }
     }
 
+    /**
+     * Compose and return HTTP header string.
+     * 
+     * @return string HTTP header.
+     */
     private function getComposedHTTPHeader()
     {
-        $header = 'HTTP/' . $this->version . ' ' . $this->status['code'] . ' ' . $this->status['string'] . PHP_EOL;
+        $header = 'HTTP/' . $this->version . ' ' . $this->status['code'] . ' ' . $this->status['description'] . PHP_EOL;
 
         foreach ($this->header as $key => $value) {
-            // echo $key . ': ' . $value . 'bbb';
-            $header .= $key . ': ' . $value;// . PHP_EOL;
+            $header .= $key . ': ' . $value;
         }
 
         return $header;

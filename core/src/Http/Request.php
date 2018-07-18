@@ -4,6 +4,9 @@ namespace Core\Http;
 
 class Request
 {
+    /**
+     * @property array of information about HTTP Request.
+     */
     private $info = [
         'header' => [],
         'method' => null,
@@ -13,27 +16,29 @@ class Request
         'files' => [],
         'get' => [],
         'post' => []
-        // 'data' => null,
     ];
 
-    public function __construct()
-    {
-        // $this->header = getallheaders();
-        // $this->method = $_SERVER['REQUEST_METHOD'];
-        // $this->uri = $_SERVER['REQUEST_URI'];
-        // $this->get = $_GET;
-        // $this->post = $_POST;
-        // $this->files = $_FILES;
-        // $this->session = empty($_SESSION) ? [] : $_SESSION;
-        // $this->cookie = $_COOKIE;
-    }
-
+    /**
+     * Get $this->info
+     * 
+     * @api
+     * 
+     * @return mixed $this->info[$name]
+     */
     public function __get(string $name)
     {
         return $this->info[$name];
     }
 
-    // For middleware to modify it
+    /**
+     * Set $this->info
+     * 
+     * For middleware to modify it
+     * 
+     * @api
+     * 
+     * @return void
+     */
     public function __set(string $name, $value)
     {
         $this->info[$name] = $value;
