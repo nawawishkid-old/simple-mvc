@@ -4,38 +4,34 @@ namespace Core\View;
 
 class View
 {
+    /**
+     * @property string Path of views directory.
+     */
     private static $directory = \VIEW_DIR;
 
+    /**
+     * @property string View file extension.
+     */
     private static $fileExtension = \VIEW_FILE_EXTENSION;
 
-    public function __construct()
+    /**
+     * Return View content.
+     * 
+     * @api
+     * 
+     * @uses View::getFilePathByName()
+     * @uses View::getViewContentFromFilePath()
+     * 
+     * @param string $viewName View name.
+     * @param array $data Data array to be used as an object in the view.
+     * 
+     * @return string View content.
+     */
+    public function get(string $viewName, array $data = null)
     {
-        // if (! is_null($configs)) {
-        //     $this->config($configs);
-        //     return;
-        // }
+        $filePath = static::getFilePathByName($viewName);
 
-        // static::checkConfig();
-    }
-
-    // public static function config(array $configs)
-    // {
-    //     static::$directory = $configs['directory'];
-    //     static::$fileExtension = $configs['file_extension'];
-    // }
-
-    // public function render(string $viewName, $data)
-    // {
-    //     echo static::get($viewName, $data);
-    // }
-
-    public function get(string $viewName, $data = null)
-    {
-        // static::checkConfig();
-        // (new Debugger())->varDump(static::$directory, 'Directory');
-        $filename = static::$directory . '/' . $viewName . '.' . static::$fileExtension;
-
-        if (! file_exists($filename)) {
+        if (! file_exists($filePath)) {
             throw new \Exception("Error: View does not exists.", 1);
             
         }
@@ -44,39 +40,43 @@ class View
             $data = (object) $data;
         }
 
+        return static::getViewContentFromFilePath($filePath);
+    }
+
+    /**
+     * Return path of the given view name.
+     * 
+     * @param string $name Name of the view.
+     * 
+     * @return string File path
+     */
+    private function getFilePathByName(string $name)
+    {
+        return static::$directory . '/' . $name . '.' . static::$fileExtension;
+    }
+
+    /**
+     * Return View content.
+     * 
+     * @param string $filePath Path of the view file.
+     * 
+     * @return string View content.
+     */
+    private function getViewContentFromFilePath(string $filePath)
+    {
+        // Not good practice, may use too much memory.
+        // var_dump(memory_get_usage());
         ob_start();
-        include $filename;
-        return ob_get_clean();
+        include $filePath;
+        $result = ob_get_clean();
+
+        // var_dump(memory_get_usage());
+
+        return $result;
     }
 
     public function toJson($data)
     {
         return json_encode($data);
     }
-
-    // public function dir(string $path)
-    // {
-    //     if (! \file_exists($path) || ! \is_dir($path)) {
-    //         throw new \Exception("Error: Given directory path does not exists or not a directory, $path", 1);
-            
-    //     }
-
-    //     static::$directory = $path;
-
-    //     return $this;
-    // }
-
-    // private static function checkConfig()
-    // {
-    //     if (! empty(static::$directory) || ! empty(static::$fileExtension)) {
-    //         return;
-    //     }
-
-    //     Config::loadModule('view');
-
-    //     static::config([
-    //         'directory' => Config::get('view.directory'),
-    //         'file_extension' => Config::get('view.file_extension')
-    //     ]);
-    // }
 }

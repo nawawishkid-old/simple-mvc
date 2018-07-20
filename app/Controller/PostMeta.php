@@ -6,7 +6,6 @@ use Core\Controller;
 use App\Model\PostMeta as Model;
 use Core\Database\Connection;
 use Core\Database\Controller as DatabaseController;
-use Core\Database\Query\Builder;
 use Core\View\View;
 
 class PostMeta extends Controller
@@ -15,7 +14,6 @@ class PostMeta extends Controller
     {
         $conn = new Connection();
         $ctrl = new DatabaseController($conn);
-        // $qb = new Builder();
 
         $ctrl->table('wp_postmeta')
              ->select('meta_id', 'meta_value')
@@ -29,12 +27,11 @@ class PostMeta extends Controller
 
     public function form($request, $response)
     {
-        $view = new View();
-        return $view->get('form');
+        return View::get('form');
     }
 
     public function upload($request, $response)
     {
-        return (new View())->get('upload', $request);
+        return View::get('upload', $request);
     }
 }
