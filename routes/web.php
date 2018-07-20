@@ -1,28 +1,27 @@
 <?php
 
-use Core\API\Route\Route;
-use App\Controller\ExampleController;
+use Core\User\API\Route;
+use App\Controller as Ctrl;
 
-// May use static method instead
-Route::get('/', [ExampleController::class, 'index']);
-Route::get('/store', [ExampleController::class, 'store']);
-// $router->get('/', [ExampleController::class, 'index']);
-// $router->get('/hi', [ExampleController::class, 'index']);
+// General routes
+Route::get('/', [Ctrl\PostMeta::class, 'index']);
+Route::get('form', [Ctrl\PostMeta::class, 'form']);
+Route::post('upload', [Ctrl\PostMeta::class, 'upload']);
+Route::post('/', function ($request, $response) {
+    echo '<pre>';
+    var_dump($request);
+    echo '</pre>';
+});
 
-// $router->get('/', function ($request, $response) {
-//     $response->data('<h1>Hi!</h1>');
-//     $response->emit();
-// });
-// $router->get('hello', function ($request, $response) {
-//     $response->data('<h1>HELLOO!</h1>');
-//     $response->emit();
-// });
-// $router->get('user/{user_id}/article/{article_id}', function ($request, $response, $args) {
-//     $response->data('<h1>Hello, user no. ' . $args->user_id . '. With article no. ' . $args->article_id . '</h1>');
-//     $response->emit();
-// });
-$router->notFound(function ($request, $response) {
-    $response->status(404);
-    $response->data('<h1>404 Not found!</h1>');
-    $response->emit();
+// User routes
+Route::get('login', [Ctrl\User::class, 'loginPage']);
+Route::post('login', [Ctrl\User::class, 'loginProcess']);
+Route::post('logout', [Ctrl\User::class, 'logoutProcess']);
+Route::get('/u/{username}', [Ctrl\User::class, 'user']);
+Route::get('admin', [Ctrl\User::class, 'adminPage'])->middleware(function ($request, $response, $args) {
+    if (empty($_COOKIE['id'])) {
+        $response->redirect('login');
+    }
+
+    return true;
 });
